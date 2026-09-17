@@ -14,6 +14,8 @@ class DetectorService:
         timestamp = datetime.utcnow().isoformat() + "Z"
         errors = []
         
+        transport_type = TransportType.WIFI if hasattr(self.transport, "target_ip") else TransportType.ADB
+        
         try:
             devices = self.transport.list_devices()
         except RuntimeError as e:
@@ -28,7 +30,7 @@ class DetectorService:
             return DetectorResult(
                 device=None,
                 sensors=[],
-                connection=Connection(TransportType.ADB, "", ConnectionStatus.DISCONNECTED, timestamp),
+                connection=Connection(transport_type, "", ConnectionStatus.DISCONNECTED, timestamp),
                 errors=errors,
                 timestamp=timestamp
             )
@@ -38,7 +40,7 @@ class DetectorService:
             return DetectorResult(
                 device=None,
                 sensors=[],
-                connection=Connection(TransportType.ADB, "", ConnectionStatus.DISCONNECTED, timestamp),
+                connection=Connection(transport_type, "", ConnectionStatus.DISCONNECTED, timestamp),
                 errors=errors,
                 timestamp=timestamp
             )
@@ -48,7 +50,7 @@ class DetectorService:
             return DetectorResult(
                 device=None,
                 sensors=[],
-                connection=Connection(TransportType.ADB, "", ConnectionStatus.DISCONNECTED, timestamp),
+                connection=Connection(transport_type, "", ConnectionStatus.DISCONNECTED, timestamp),
                 errors=errors,
                 timestamp=timestamp
             )
@@ -62,7 +64,7 @@ class DetectorService:
             return DetectorResult(
                 device=None,
                 sensors=[],
-                connection=Connection(TransportType.ADB, serial, ConnectionStatus.UNAUTHORIZED, timestamp),
+                connection=Connection(transport_type, serial, ConnectionStatus.UNAUTHORIZED, timestamp),
                 errors=errors,
                 timestamp=timestamp
             )
@@ -71,7 +73,7 @@ class DetectorService:
             return DetectorResult(
                 device=None,
                 sensors=[],
-                connection=Connection(TransportType.ADB, serial, ConnectionStatus.OFFLINE, timestamp),
+                connection=Connection(transport_type, serial, ConnectionStatus.OFFLINE, timestamp),
                 errors=errors,
                 timestamp=timestamp
             )
@@ -80,7 +82,7 @@ class DetectorService:
             return DetectorResult(
                 device=None,
                 sensors=[],
-                connection=Connection(TransportType.ADB, serial, ConnectionStatus.DISCONNECTED, timestamp),
+                connection=Connection(transport_type, serial, ConnectionStatus.DISCONNECTED, timestamp),
                 errors=errors,
                 timestamp=timestamp
             )
@@ -89,7 +91,7 @@ class DetectorService:
              return DetectorResult(
                 device=None,
                 sensors=[],
-                connection=Connection(TransportType.ADB, serial, ConnectionStatus.DISCONNECTED, timestamp),
+                connection=Connection(transport_type, serial, ConnectionStatus.DISCONNECTED, timestamp),
                 errors=errors,
                 timestamp=timestamp
             )
@@ -108,7 +110,7 @@ class DetectorService:
                 abilist=info.get("abilist", []),
                 connection_state=ConnectionState.DEVICE
             )
-            connection = Connection(TransportType.ADB, serial, ConnectionStatus.CONNECTED, timestamp)
+            connection = Connection(transport_type, serial, ConnectionStatus.CONNECTED, timestamp)
             
             # Phase 2: Sensor Detection
             try:
@@ -146,7 +148,7 @@ class DetectorService:
             return DetectorResult(
                 device=None,
                 sensors=[],
-                connection=Connection(TransportType.ADB, serial, conn_status, timestamp),
+                connection=Connection(transport_type, serial, conn_status, timestamp),
                 errors=errors,
                 timestamp=timestamp
             )
