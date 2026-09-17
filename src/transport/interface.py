@@ -37,3 +37,10 @@ class TransportInterface(ABC):
         (Phase 3+) Opens a channel for continuous data.
         """
         pass
+
+    @abstractmethod
+    def close_stream(self, device_id: str, *args, **kwargs):
+        """
+        Closes the channel.
+        """
+        pass

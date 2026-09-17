@@ -80,5 +80,16 @@ class AdbTransport(TransportInterface):
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Command failed: {e.stderr}")
 
-    def open_stream(self, device_id: str, *args, **kwargs):
-        raise NotImplementedError("open_stream is not implemented for Phase 1")
+    def open_stream(self, device_id: str, local_port: int, remote_port: int):
+        try:
+            # adb forward tcp:local tcp:remote
+            subprocess.run(["adb", "-s", device_id, "forward", f"tcp:{local_port}", f"tcp:{remote_port}"], capture_output=True, text=True, check=True)
+            return True
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"Forwarding failed: {e.stderr}")
+            
+    def close_stream(self, device_id: str, local_port: int):
+        try:
+            subprocess.run(["adb", "-s", device_id, "forward", "--remove", f"tcp:{local_port}"], capture_output=True, text=True, check=True)
+        except subprocess.CalledProcessError:
+            pass

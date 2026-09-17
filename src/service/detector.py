@@ -109,9 +109,24 @@ class DetectorService:
                 connection_state=ConnectionState.DEVICE
             )
             connection = Connection(TransportType.ADB, serial, ConnectionStatus.CONNECTED, timestamp)
+            
+            # Phase 2: Sensor Detection
+            try:
+                from src.service.parser import SensorParser
+                dump_text = self.transport.get_sensor_dump(serial)
+                parser = SensorParser()
+                sensors = parser.parse_dump(dump_text)
+            except RuntimeError as e:
+                # If sensor dump fails (e.g. permission issue), we still return the device
+                sensors = []
+                errors.append(Error("SENSOR_DUMP_FAILED", f"Could not fetch sensors: {str(e)}", ErrorCategory.PERMISSION, False))
+            except Exception as e:
+                sensors = []
+                errors.append(Error("PARSE_WARNING", f"Failed to parse sensors: {str(e)}", ErrorCategory.PARSING, False))
+
             return DetectorResult(
                 device=device,
-                sensors=[], # Phase 1 does not include sensors yet
+                sensors=sensors,
                 connection=connection,
                 errors=errors,
                 timestamp=timestamp
