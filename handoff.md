@@ -37,6 +37,7 @@
    * **[Bug #5 Fixed]** Touchpad delta now resets to `0.0` when all clients disconnect — prevents wild mouse jump on first connection.
    * **[Bug #11 Fixed]** Sensor events (`_accelSub`, `_gyroSub`) no longer call `setState` — eliminates 100 Hz widget rebuilds and jank.
    * **[Bug #13 Fixed]** `_clients.remove()` in `onDone`/`onError` is now guarded with `.contains()` to avoid unnecessary `setState`.
+   * **[Android Release INTERNET Permission Fixed]** `companion_app/android/app/src/main/AndroidManifest.xml` was missing `<uses-permission android:name="android.permission.INTERNET" />`. In release builds, Android's kernel threw `SocketException: Failed to create server socket (Operation not permitted, errno = 1)` preventing port 5050 from opening and returning an empty response `b''`. Added `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, and `HIGH_SAMPLING_RATE_SENSORS` to main manifest, rebuilt release APK, reinstalled to phone, and verified socket communication.
 2. **Desktop Host (Python/Windows):**
    * Window title and argument parsers updated to "GyroPad Desktop Host".
    * Tilt throttle detection **completely removed** (games use their own triggers; tilt controls horizontal steering only).
