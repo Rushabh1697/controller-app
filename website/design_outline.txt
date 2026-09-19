@@ -1,0 +1,57 @@
+Section - 2. HERO SECTION
+Section - 2. HERO SECTION paints
+Heading 1 - Main Headline
+Subtitle → Turn any modern Android smartphone into a high-performance virtual gamepad for
+your Windows PC with real-time gyro tilt-steering, full analog controls, and zero
+bloatware.
+Section - 3. FEATURES GRID SECTION
+Heading 2
+Card 1
+Card 1:shadow
+Heading 3
+Card 2
+Card 2:shadow
+Heading 3
+Card 3
+Card 3:shadow
+Heading 3
+Card 4
+Card 4:shadow
+Heading 3
+Card 5
+Card 5:shadow
+Heading 3
+Card 6
+Card 6:shadow
+Heading 3
+Section - 4. HOW IT WORKS (3-Step Visual Sequence)
+Heading 2
+Heading 3 → Install on Phone & PC
+Heading 3 → Enter the PIN
+Heading 3 → Jump In & Play
+Section - 5. SCREENSHOTS / APP SHOWCASE
+Heading 2
+Tabbed / Card Mockups Grid
+Heading 3
+Heading 3
+Heading 3
+Section - 6. SYSTEM REQUIREMENTS (Checklist Box)
+Heading 2
+Heading 3
+Heading 3
+Heading 3
+Section - 7. DOWNLOAD SECTION (High Impact CTA Cards)
+Heading 2
+Card 1: Android Download
+Card 1: Android Download:shadow
+Heading 3
+Card 2: Windows Download
+Card 2: Windows Download:shadow
+Heading 3
+Section - 8. FREQUENTLY ASKED QUESTIONS (Accordion Style)
+Heading 2
+Slot → Summary
+Slot → Summary
+Slot → Summary
+Slot → Summary
+Slot → Summary

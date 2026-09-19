@@ -1,0 +1,223 @@
+# 🧭 GyroPad — Universal Project Handoff & State Guide
+
+> **IMPORTANT INSTRUCTION FOR AI ASSISTANT:**  
+> When the user starts a new conversation and asks you to read `handoff.md`, **read this entire file thoroughly**. It contains the complete ground-truth state of the project, all architectural and design decisions, working conventions, current status, and pending tasks.  
+> **MANDATORY RULE:** Every time you make any change, bug fix, feature addition, or file modification in this repository, **you must update this `handoff.md` file by default** before finishing your response so the state stays synchronized for future sessions.
+
+---
+
+## 1. Project Overview & Repository Identity
+
+* **Project Name:** **GyroPad** (formerly Controller-app / Companion App)
+* **GitHub Repository:** [`https://github.com/Rushabh1697/controller-app`](https://github.com/Rushabh1697/controller-app)
+* **Purpose:** Turns any modern Android smartphone into a high-performance virtual Xbox 360 controller for Windows 10/11 PC.
+* **Key Capabilities:**
+  * Real-time 6-axis Gyro tilt-steering (for racing/sim games)
+  * Dual virtual analog thumbsticks & full console layout (D-Pad, Cross/Circle/Square/Triangle, L1/R1, L2/R2 analog triggers)
+  * Integrated PC Trackpad with mouse emulation for menu & desktop navigation
+  * Tri-Mode Connectivity: USB (ADB sub-2ms), Wi-Fi (local network), Bluetooth (PAN tethering)
+  * Dynamic 4-Digit Security PIN generated per session on the phone
+  * In-App Button Remapping GUI saved to `mapping.json`
+  * Official animated, responsive landing & download website with Vercel deployment support
+
+---
+
+## 2. Current Status & Where We Left Off (As of Sept 19, 2026)
+
+### ✅ Completed & Fully Operational:
+1. **Companion App (Flutter/Android):**
+   * Package name updated to `gyropad`.
+   * Custom controller icon registered in `pubspec.yaml` and generated via `flutter_launcher_icons`.
+   * PS button renamed to **"GP"** button in HUD and maps to both `'GP'` and `'PS'`.
+   * Generates a 4-digit PIN on launch, starts TCP server on port 5050, requires `AUTH <PIN>\n` before streaming.
+   * Touchpad delta accumulation bug fixed (`+= details.delta.dx`).
+   * Production Release APK built: `Release/GyroPad-Android.apk` (~42.1 MB). Tested with `flutter analyze` (0 issues) and `flutter test` (all tests passed).
+2. **Desktop Host (Python/Windows):**
+   * Window title and argument parsers updated to "GyroPad Desktop Host".
+   * Tilt throttle detection **completely removed** (games use their own triggers; tilt controls horizontal steering only).
+   * **Critical Windows Mouse Freeze Fix:** Replaced untyped `ctypes.windll.user32.mouse_event` with typed `argtypes` (`DWORD, LONG, LONG, DWORD, c_size_t`) and clamped deltas to `[-60, 60]`. Physical keyboard/mouse never freeze or crash Windows LowLevelHooksTimeout.
+   * Wi-Fi 4-digit PIN authentication field added to Tkinter GUI and CLI.
+   * Dynamic Button Remapping Studio (`src/ui/mapping_utils.py` + `src/ui/gui.py`) with dropdown editor saving to `src/ui/mapping.json`.
+   * Bluetooth PAN transport flag added (`--bluetooth`) routing to `192.168.44.1:5050`. Setup guide created at `files/BLUETOOTH_SETUP.md`.
+   * Standalone Windows executable built with PyInstaller: `Release/GyroPadHost-Windows.exe` (~13.6 MB).
+3. **Official Website (`website/`):**
+   * Full 8-section responsive landing page constructed using Figma design specifications (Roboto Flex typography, `#00439C` blue theme).
+   * Sections: Sticky Glass Navbar, Hero with simulated HUD horizon tilt, Features Bento Grid with mobile scroll-snap carousel, 3-Step Setup, Interactive Tabbed App Showcase, System Requirements, Download Cards with mobile tab switcher, and FAQ Accordion.
+   * Animations: 3D card mouse tilt, button ripples, magnetic pull, typewriter hero subtitle, live gyro horizon bar, floating mockup, and staggered scroll reveals.
+   * Vercel deployment configs created: root `vercel.json` (maps `outputDirectory: "website"`) and `website/vercel.json` (security headers & caching).
+   * Download buttons pointed to direct GitHub raw download links:
+     * Android APK: `https://github.com/Rushabh1697/controller-app/raw/main/Release/GyroPad-Android.apk`
+     * Windows EXE: `https://github.com/Rushabh1697/controller-app/raw/main/Release/GyroPadHost-Windows.exe`
+4. **GitHub Binary Download Clarification:**
+   * When opening `/blob/main/Release/GyroPad-Android.apk` in a web browser, GitHub displays *"View raw (Sorry about that, but we can't show files that are this big right now.)"* because GitHub's code viewer cannot preview 42MB binary files in the browser.
+   * Clicking **"View raw"** or the download button downloads the file normally.
+   * The website download links use GitHub's direct `/raw/` endpoints, which bypass the preview page and immediately trigger file download.
+
+### 📌 Immediate Next Steps for Next Session:
+* [ ] Run `git add .`, `git commit -m "feat: complete website, vercel config, and handoff"`, and `git push origin main` to push the new `website/`, `vercel.json`, and `handoff.md` files to GitHub.
+* [ ] (Optional) Create an official GitHub Release tagged `v1.0.0` at [releases/new](https://github.com/Rushabh1697/controller-app/releases/new) and attach `Release/GyroPad-Android.apk` and `Release/GyroPadHost-Windows.exe`.
+* [ ] Deploy to Vercel by importing `Rushabh1697/controller-app` on [vercel.com](https://vercel.com) (or running `vercel` inside `website/`).
+* [ ] Test end-to-end streaming live on physical hardware (Android phone + PC over USB, Wi-Fi, or Bluetooth).
+
+---
+
+## 3. Directory & File Structure
+
+```
+Controller-app/
+├── companion_app/                  # Flutter Android App
+│   ├── android/                    # Android platform files, manifest (android:label="GyroPad")
+│   ├── assets/images/logo.png      # App logo asset
+│   ├── lib/main.dart               # UI, Virtual Controller HUD, TCP Server on 5050, PIN Auth
+│   ├── test/widget_test.dart       # Flutter unit/widget tests
+│   └── pubspec.yaml                # Package definition (name: gyropad, flutter_launcher_icons)
+│
+├── src/                            # Python Backend Host
+│   ├── service/
+│   │   └── mapper.py               # InputMapper: Gyro tilt steering only (throttle removed)
+│   ├── transport/
+│   │   ├── interface.py            # TransportInterface base class
+│   │   ├── adb.py                  # AdbTransport: auto adb forward tcp:5050 tcp:5050
+│   │   └── wifi.py                 # WifiTransport: connects to phone IP on 5050
+│   └── ui/
+│       ├── gui.py                  # Tkinter GUI (PIN entry, Start/Stop, Edit Mapping modal)
+│       ├── cli.py                  # Interactive terminal CLI mode
+│       ├── mapping_utils.py        # Xbox 360 button strings, load_mapping, save_mapping
+│       └── mapping.json            # User custom button mapping config
+│
+├── website/                        # Modern Responsive Landing Page
+│   ├── assets/
+│   │   ├── logo.png                # Brand logo
+│   │   ├── GyroPad-Android.apk     # Local copy of APK (~42 MB)
+│   │   └── GyroPadHost-Windows.exe # Local copy of Windows EXE (~13.6 MB)
+│   ├── index.html                  # Single-page semantic HTML with 8 sections
+│   ├── style.css                   # Responsive CSS design system (mobile carousel, desktop grid)
+│   ├── app.js                      # Micro-interactions, animations, 3D tilt, tabs, scrollspy
+│   └── vercel.json                 # Vercel security headers and caching configuration
+│
+├── Release/                        # Production Binaries
+│   ├── GyroPad-Android.apk         # Compiled release APK
+│   └── GyroPadHost-Windows.exe     # Standalone PyInstaller onefile executable
+│
+├── files/
+│   └── BLUETOOTH_SETUP.md          # Guide for Bluetooth PAN tethering connection
+│
+├── main.py                         # Python entry point (flags: --cli, --ip, --port, --bluetooth)
+├── vercel.json                     # Root Vercel config mapping output to website/
+├── README.md                       # Public GitHub README
+└── handoff.md                      # This universal project state & continuation guide
+```
+
+---
+
+## 4. Key Architectural & Protocol Details
+
+### A. Communication Handshake
+1. Android app starts TCP Server on `0.0.0.0:5050`.
+2. A random 4-digit PIN (e.g. `4829`) is generated and shown on the phone screen.
+3. Python host connects via TCP:
+   - USB ADB: Connects to `127.0.0.1:5050` after running `adb forward tcp:5050 tcp:5050`.
+   - Wi-Fi: Connects to `<Phone_LAN_IP>:5050`.
+   - Bluetooth: Connects to `192.168.44.1:5050` with `--bluetooth`.
+4. Host immediately sends: `AUTH <PIN>\n`.
+5. Android app validates PIN:
+   - If correct: responds `AUTH_OK\n` and accepts connection.
+   - If wrong: responds `AUTH_FAIL\n` and closes socket.
+6. Once authenticated, host sends `ping\n` at ~50 Hz, and app replies with JSON sensor telemetry.
+
+### B. Telemetry Payload Schema
+```json
+{
+  "timestamp_ms": 12345678,
+  "accel": [x, y, z],
+  "gyro": [x, y, z],
+  "buttons": {
+    "Cross": true,
+    "Circle": false,
+    "Square": false,
+    "Triangle": false,
+    "L1": false, "R1": false,
+    "L2": false, "R2": false,
+    "L3": false, "R3": false,
+    "Dpad_Up": false, "Dpad_Down": false, "Dpad_Left": false, "Dpad_Right": false,
+    "Options": false, "Share": false,
+    "Touchpad": false,
+    "GP": false, "PS": false
+  },
+  "joystick_left": {"x": 0.0, "y": 0.0},
+  "joystick_right": {"x": 0.0, "y": 0.0},
+  "touchpad_delta": {"x": 0.0, "y": 0.0}
+}
+```
+
+### C. Input Mapping Logic
+* **Tilt Steering:** `InputMapper.process()` uses phone accelerometer `accel[0]` for horizontal steering (`st`). Left joystick overrides tilt if `abs(lx) > 0.01` or `abs(ly) > 0.01`.
+* **Tilt Throttle:** Completely disabled (`th = 0.0`). Acceleration/braking is left entirely to game controls or L2/R2 buttons.
+* **Trackpad Mouse:** `touchpad_delta` is clamped to `[-60, 60]` and fed to Windows `user32.mouse_event` with strict 64-bit ctypes `argtypes` so physical input devices never freeze.
+* **Button Remapping:** Iterates dynamically over `src/ui/mapping.json` (or default mapping) mapping Flutter keys to `vgamepad` Xbox 360 buttons.
+
+---
+
+## 5. How to Run, Test, and Build
+
+### Running the Python Host
+```powershell
+# Default Tkinter GUI mode:
+python main.py
+
+# Terminal CLI mode:
+python main.py --cli
+
+# Bluetooth PAN mode:
+python main.py --bluetooth
+```
+
+### Building Host Executable (PyInstaller)
+```powershell
+python -m PyInstaller --onefile --name GyroPadHost main.py
+# Output: dist/GyroPadHost.exe (copied to Release/GyroPadHost-Windows.exe)
+```
+
+### Building Android Companion App (Flutter)
+```powershell
+cd companion_app
+flutter build apk --release
+# Output: companion_app/build/app/outputs/flutter-apk/app-release.apk (copied to Release/GyroPad-Android.apk)
+```
+
+### Running the Website Locally
+```powershell
+python -m http.server 8080 --directory website
+# View in browser: http://localhost:8080
+```
+
+### Deploying to Vercel
+1. Commit and push changes:
+   ```powershell
+   git add .
+   git commit -m "feat: website and documentation updates"
+   git push origin main
+   ```
+2. Open [Vercel](https://vercel.com), import `controller-app` repository. Root `vercel.json` will automatically route the deployment to the `website/` directory.
+
+---
+
+## 6. GitHub Download Problem & Direct Link Solution
+
+### Why the GitHub screenshot showed the warning:
+When navigating to `https://github.com/Rushabh1697/controller-app/blob/main/Release/GyroPad-Android.apk`, GitHub opens its web code viewer (`/blob/`). Since GitHub's web viewer cannot render binary files and has a display size limit, it displays:
+> *"View raw (Sorry about that, but we can't show files that are this big right now.)"*
+
+### How it is resolved:
+1. **To download directly in a browser without that screen:**
+   Use GitHub's `/raw/` link instead of `/blob/`:
+   * **Android APK:** [`https://github.com/Rushabh1697/controller-app/raw/main/Release/GyroPad-Android.apk`](https://github.com/Rushabh1697/controller-app/raw/main/Release/GyroPad-Android.apk)
+   * **Windows EXE:** [`https://github.com/Rushabh1697/controller-app/raw/main/Release/GyroPadHost-Windows.exe`](https://github.com/Rushabh1697/controller-app/raw/main/Release/GyroPadHost-Windows.exe)
+   *(Both return HTTP 200 OK and download the file immediately).*
+2. The download buttons on the GyroPad website have been configured to use these direct `/raw/` URLs.
+
+---
+
+## 7. Instructions for Future Assistant Sessions
+* **When reading this file:** Treat this file as the authoritative record of architecture, decisions, and progress.
+* **When making changes:** Always update section **2 (Current Status & Where We Left Off)** and any relevant implementation sections whenever new code, features, or fixes are implemented.

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GyroPad – Turn Your Android into a PC Controller</title>
+  <meta name="description" content="Turn any modern Android smartphone into a high-performance virtual gamepad for your Windows PC with real-time gyro tilt-steering, full analog controls, and zero bloatware." />
+  <link rel="icon" type="image/png" href="assets/logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════ NAV ═══ -->
+  <header class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a class="nav-logo" href="#">
+        <img src="assets/logo.png" alt="GyroPad logo" width="32" height="32" />
+        <span>GyroPad</span>
+      </a>
+      <nav class="nav-links" id="navLinks">
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#showcase">Showcase</a>
+        <a href="#requirements">Requirements</a>
+        <a href="#download">Download</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://github.com/Rushabh1697/controller-app" class="nav-github" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </nav>
+      <button class="nav-toggle" id="navToggle" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════ HERO ═══ -->
+  <section class="hero" id="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-inner">
+      <div class="hero-copy">
+        <div class="status-badge">
+          <span class="badge-dot"></span>
+          <span>Low Latency &lt;2ms · USB · Wi-Fi · Bluetooth</span>
+        </div>
+        <h1 class="hero-h1">Your Phone<br />Is Your<br />Controller.</h1>
+        <p class="hero-sub">Turn any modern Android smartphone into a high-performance virtual gamepad for your Windows PC with real-time gyro tilt-steering, full analog controls, and zero bloatware.</p>
+        <div class="hero-cta">
+          <a href="#download" class="btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download GyroPad Free
+          </a>
+          <a href="#how-it-works" class="btn-secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+            See How It Works
+          </a>
+        </div>
+        <div class="hero-trust">
+          <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00439C" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Free &amp; Open Source</span>
+          <span class="trust-sep">·</span>
+          <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00439C" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>PIN Secured</span>
+          <span class="trust-sep">·</span>
+          <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00439C" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>No Account Needed</span>
+        </div>
+      </div>
+      <div class="hero-mockup">
+        <div class="phone-frame">
+          <div class="phone-screen">
+            <div class="hud-bar">
+              <span class="hud-dot"></span>
+              <span class="hud-text">GyroPad · 1.8ms</span>
+              <span class="hud-right">84% 🔋</span>
+            </div>
+            <div class="horizon-bar">
+              <div class="horizon-line"></div>
+              <div class="horizon-indicator"></div>
+            </div>
+            <div class="controller-surface">
+              <div class="ctrl-left">
+                <div class="dpad">
+                  <div class="dpad-h"></div>
+                  <div class="dpad-v"></div>
+                </div>
+                <div class="thumbstick left-stick">
+                  <div class="stick-inner"></div>
+                </div>
+              </div>
+              <div class="ctrl-center">
+                <div class="gp-btn">GP</div>
+              </div>
+              <div class="ctrl-right">
+                <div class="action-btns">
+                  <div class="act-btn top">△</div>
+                  <div class="act-btn left">□</div>
+                  <div class="act-btn right">○</div>
+                  <div class="act-btn bottom pressed">×</div>
+                </div>
+                <div class="thumbstick right-stick">
+                  <div class="stick-inner"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="spec-chip">
+          <span class="chip-dot"></span>
+          <span>Virtual Xbox 360 · ViGEm</span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-border-bottom"></div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════ FEATURES ═══ -->
+  <section class="features" id="features">
+    <div class="section-inner">
+      <div class="section-tag">BUILT FOR GAMERS</div>
+      <h2 class="section-h2">Everything a controller needs,<br />nothing it doesn't.</h2>
+      <p class="section-sub">Six purpose-built features that make GyroPad feel like dedicated hardware — not a workaround.</p>
+
+      <!-- Desktop grid / Mobile horizontal scroll -->
+      <div class="features-scroll-wrapper">
+        <div class="features-grid">
+
+          <div class="feat-card feat-card--wide">
+            <div class="feat-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00439C" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+            <h3>Tilt Steering &amp; Racing Mode</h3>
+            <p>Real-time 6-axis gyroscope and accelerometer tracking tuned for sim racing and arcade driving, featuring custom deadzones and smoothing algorithms.</p>
+            <div class="feat-footer"><span class="feat-tag">Gyroscope</span><span class="feat-tag">Accelerometer</span></div>
+          </div>
+
+          <div class="feat-card">
+            <div class="feat-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00439C" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="3"/><path d="M8 12h.01M12 9v6M16 12h.01"/></svg></div>
+            <h3>Full Console-Style Layout</h3>
+            <p>PS5-inspired on-screen layout with dual joysticks, D-pad, face buttons, shoulder triggers, touchpad, and the GP home button.</p>
+            <div class="feat-footer"><span class="feat-tag">18 Buttons</span></div>
+          </div>
+
+          <div class="feat-card">
+            <div class="feat-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00439C" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg></div>
+            <h3>Tri-Mode Connectivity</h3>
+            <p>Seamlessly connect over local Wi-Fi with auto-discovery, low-energy Bluetooth PAN, or tethered USB for sub-2ms input response.</p>
+            <div class="feat-footer"><span class="feat-tag">USB</span><span class="feat-tag">Wi-Fi</span><span class="feat-tag">Bluetooth</span></div>
+          </div>
+
+          <div class="feat-card">
+            <div class="feat-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00439C" stroke-width="2"><path d="M3 3h18v18H3zM3 9h18M9 21V9"/></svg></div>
+            <h3>Integrated PC Trackpad</h3>
+            <p>Use your phone screen as an integrated PC trackpad with tap-to-click and scroll gestures for navigating game menus and the desktop without a mouse.</p>
+            <div class="feat-footer"><span class="feat-tag">Mouse Emulation</span></div>
+          </div>
+
+          <div class="feat-card">
+            <div class="feat-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00439C" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>
+            <h3>Custom Button Remapping</h3>
+            <p>Deep configuration studio allowing custom profiles per game, deadzone tuning, gyro sensitivity curves, and trigger mapping saved to <code>mapping.json</code>.</p>
+            <div class="feat-footer"><span class="feat-tag">Per-Game Profiles</span></div>
+          </div>
+
+          <div class="feat-card">
+            <div class="feat-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00439C" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+            <h3>PIN-Protected Pairing</h3>
+            <p>Every session generates a fresh 4-digit PIN displayed on-screen. Only the correct PIN holder can connect — no random devices on your network slip through.</p>
+            <div class="feat-footer"><span class="feat-tag">Session-Based PIN</span></div>
+          </div>
+
+        </div>
+        <div class="scroll-dots" id="featureDots"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════ HOW IT WORKS ═══ -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="section-inner">
+      <div class="section-tag">SETUP IN UNDER 60 SECONDS</div>
+      <h2 class="section-h2">Three steps.<br />One controller.</h2>
+
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-number">01</div>
+          <div class="step-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00439C" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </div>
+          <h3>Install on Phone &amp; PC</h3>
+          <p>Install <strong>GyroPad</strong> on your Android from the APK. Run <strong>GyroPadHost.exe</strong> on your Windows PC. Connect your phone via USB, Wi-Fi, or Bluetooth.</p>
+        </div>
+        <div class="step-connector"><svg width="40" height="2" viewBox="0 0 40 2"><line x1="0" y1="1" x2="40" y2="1" stroke="#C3C6D4" stroke-width="1.5" stroke-dasharray="4 3"/></svg></div>
+        <div class="step-card">
+          <div class="step-number">02</div>
+          <div class="step-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00439C" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <h3>Enter the PIN</h3>
+          <p>A fresh 4-digit security PIN appears on your phone. Type it into the desktop host. You're instantly authenticated — no accounts, no sign-up, no cloud.</p>
+        </div>
+        <div class="step-connector"><svg width="40" height="2" viewBox="0 0 40 2"><line x1="0" y1="1" x2="40" y2="1" stroke="#C3C6D4" stroke-width="1.5" stroke-dasharray="4 3"/></svg></div>
+        <div class="step-card">
+          <div class="step-number">03</div>
+          <div class="step-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00439C" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </div>
+          <h3>Jump In &amp; Play</h3>
+          <p>Open your game. A virtual Xbox 360 controller is live. Tilt to steer, use on-screen sticks for precision, and remap anything in the Profile Editor.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════ SHOWCASE ═══ -->
+  <section class="showcase" id="showcase">
+    <div class="section-inner">
+      <div class="section-tag">APP SHOWCASE</div>
+      <h2 class="section-h2">See it in action.</h2>
+
+      <div class="showcase-tabs" role="tablist">
+        <button class="stab active" data-tab="mobile" role="tab">📱 Mobile Controller</button>
+        <button class="stab" data-tab="desktop" role="tab">🖥️ Desktop Host</button>
+        <button class="stab" data-tab="remap" role="tab">🎛️ Remap Editor</button>
+      </div>
+
+      <div class="showcase-panels">
+        <div class="showcase-panel active" id="tab-mobile">
+          <div class="showcase-mockup phone-showcase">
+            <div class="ps-bezel">
+              <div class="ps-screen dark-screen">
+                <div class="ps-hud">
+                  <span class="ps-hud-left">● GyroPad · 1.8ms</span>
+                  <span class="ps-hud-right">CONNECTED ✓</span>
+                </div>
+                <div class="ps-horizon">
+                  <div class="ps-horizon-line"></div>
+                  <div class="ps-horizon-center"></div>
+                </div>
+                <div class="ps-ctrl">
+                  <div class="ps-left">
+                    <div class="ps-dpad">
+                      <div class="ps-dpad-h"></div>
+                      <div class="ps-dpad-v"></div>
+                    </div>
+                    <div class="ps-stick"></div>
+                  </div>
+                  <div class="ps-mid"><div class="ps-gp">GP</div></div>
+                  <div class="ps-right">
+                    <div class="ps-actions">
+                      <div class="ps-ab top">△</div>
+                      <div class="ps-ab left">□</div>
+                      <div class="ps-ab right">○</div>
+                      <div class="ps-ab bottom glow">×</div>
+                    </div>
+                    <div class="ps-stick"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="showcase-desc">
+            <h3>Mobile Controller Interface</h3>
+            <p>Sleek landscape phone frame with dark ergonomic HUD, glowing tilt horizon bar, and dual touch sticks. Fully responsive across all Android screen sizes.</p>
+          </div>
+        </div>
+
+        <div class="showcase-panel" id="tab-desktop">
+          <div class="showcase-mockup desktop-showcase">
+            <div class="win-frame">
+              <div class="win-titlebar">
+                <span class="win-title">● GyroPad Desktop Host</span>
+                <div class="win-controls"><span></span><span></span><span class="close"></span></div>
+              </div>
+              <div class="win-body">
+                <div class="win-stat"><span class="win-label">Status</span><span class="win-val connected">Connected ✓</span></div>
+                <div class="win-stat"><span class="win-label">Latency</span><span class="win-val">1.8 ms</span></div>
+                <div class="win-stat"><span class="win-label">Transport</span><span class="win-val">USB ADB</span></div>
+                <div class="win-stat"><span class="win-label">Device</span><span class="win-val">Pixel 8 Pro</span></div>
+                <div class="win-stat"><span class="win-label">vgamepad</span><span class="win-val">Xbox 360 ✓</span></div>
+                <div class="win-stat"><span class="win-label">Profile</span><span class="win-val">Landscape</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="showcase-desc">
+            <h3>Desktop Host Client</h3>
+            <p>Windows 11 fluent app showing connected devices, live ping latency (1.8ms), and connection mode. Start/stop the controller stream from the GUI in one click.</p>
+          </div>
+        </div>
+
+        <div class="showcase-panel" id="tab-remap">
+          <div class="showcase-mockup desktop-showcase">
+            <div class="win-frame">
+              <div class="win-titlebar">
+                <span class="win-title">🎛️ Edit Button Mapping</span>
+                <div class="win-controls"><span></span><span></span><span class="close"></span></div>
+              </div>
+              <div class="win-body remap-body">
+                <div class="remap-row"><span>Cross (×)</span><span class="remap-val">XUSB_GAMEPAD_A</span></div>
+                <div class="remap-row"><span>Circle (○)</span><span class="remap-val">XUSB_GAMEPAD_B</span></div>
+                <div class="remap-row"><span>Square (□)</span><span class="remap-val">XUSB_GAMEPAD_X</span></div>
+                <div class="remap-row"><span>Triangle (△)</span><span class="remap-val">XUSB_GAMEPAD_Y</span></div>
+                <div class="remap-row"><span>L2</span><span class="remap-val remap-highlight">LEFT_TRIGGER</span></div>
+                <div class="remap-row"><span>R2</span><span class="remap-val remap-highlight">RIGHT_TRIGGER</span></div>
+                <button class="remap-save">Save Mapping</button>
+              </div>
+            </div>
+          </div>
+          <div class="showcase-desc">
+            <h3>Profile &amp; Remapping Editor</h3>
+            <p>Deep configuration studio with dropdown-per-button remapping. Changes save to <code>mapping.json</code> and apply instantly during live streaming, no restart required.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════ REQUIREMENTS ═══ -->
+  <section class="requirements" id="requirements">
+    <div class="section-inner">
+      <div class="section-tag">SYSTEM REQUIREMENTS</div>
+      <h2 class="section-h2">Works on what<br />you already own.</h2>
+
+      <div class="req-grid">
+        <div class="req-card">
+          <div class="req-icon">🤖</div>
+          <h3>Android (Companion App)</h3>
+          <ul>
+            <li><span class="check">✓</span> Android 8.0 Oreo or later</li>
+            <li><span class="check">✓</span> Accelerometer &amp; Gyroscope sensors</li>
+            <li><span class="check">✓</span> USB OTG / Wi-Fi / Bluetooth</li>
+            <li><span class="check">✓</span> ~12 MB storage</li>
+            <li><span class="check">✓</span> Landscape orientation supported</li>
+          </ul>
+        </div>
+        <div class="req-card">
+          <div class="req-icon">🪟</div>
+          <h3>Windows (Desktop Host)</h3>
+          <ul>
+            <li><span class="check">✓</span> Windows 10 or Windows 11 (64-bit)</li>
+            <li><span class="check">✓</span> ViGEmBus driver (auto-prompted)</li>
+            <li><span class="check">✓</span> USB ADB driver or Wi-Fi on same network</li>
+            <li><span class="check">✓</span> ~24 MB storage (portable EXE)</li>
+            <li><span class="check">✓</span> Python 3.9+ (optional, for source)</li>
+          </ul>
+        </div>
+        <div class="req-card">
+          <div class="req-icon">🎮</div>
+          <h3>Game Compatibility</h3>
+          <ul>
+            <li><span class="check">✓</span> Any game with Xbox controller support</li>
+            <li><span class="check">✓</span> Steam Big Picture Mode</li>
+            <li><span class="check">✓</span> DirectInput &amp; XInput games</li>
+            <li><span class="check">✓</span> Emulators (RetroArch, RPCS3, etc.)</li>
+            <li><span class="check">✓</span> Works alongside keyboard &amp; mouse</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════ DOWNLOAD ═══ -->
+  <section class="download" id="download">
+    <div class="section-inner">
+      <div class="section-tag">FREE DOWNLOAD</div>
+      <h2 class="section-h2">Ready to play.<br />Zero cost, forever.</h2>
+
+      <!-- Mobile: segmented tabs / Desktop: side-by-side cards -->
+      <div class="dl-tab-bar" role="tablist" id="dlTabBar">
+        <button class="dl-tab active" data-dl="android" role="tab">🤖 Android</button>
+        <button class="dl-tab" data-dl="windows" role="tab">🪟 Windows PC</button>
+      </div>
+
+      <div class="dl-cards">
+        <div class="dl-card active" id="dl-android">
+          <div class="dl-card-top">
+            <div class="dl-card-icon">🤖</div>
+            <div>
+              <h3>GyroPad for Android</h3>
+              <p class="dl-meta">Version 1.0.0 · ~42 MB · Android 8.0+</p>
+            </div>
+          </div>
+          <p class="dl-desc">Install the virtual controller client directly on your smartphone. Sideload the APK — no Play Store required.</p>
+          <ol class="dl-steps">
+            <li>Enable <strong>Install from unknown sources</strong> in Android Settings.</li>
+            <li>Download the APK file below.</li>
+            <li>Open it from your Downloads and tap Install.</li>
+          </ol>
+          <a href="https://github.com/Rushabh1697/controller-app/raw/main/Release/GyroPad-Android.apk" class="btn-download" download>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download APK
+          </a>
+        </div>
+
+        <div class="dl-card" id="dl-windows">
+          <div class="dl-card-top">
+            <div class="dl-card-icon">🪟</div>
+            <div>
+              <h3>GyroPadHost for Windows</h3>
+              <p class="dl-meta">Version 1.0.0 · ~14 MB · Windows 10/11 (64-bit)</p>
+            </div>
+          </div>
+          <p class="dl-desc">Portable host application with auto-packaged virtual gamepad drivers. No installer needed — just run the EXE.</p>
+          <ol class="dl-steps">
+            <li>Download <strong>GyroPadHost-Windows.exe</strong> below.</li>
+            <li>Run it. Accept the ViGEmBus driver prompt (first launch only).</li>
+            <li>Plug in your phone via USB or connect via Wi-Fi.</li>
+          </ol>
+          <a href="https://github.com/Rushabh1697/controller-app/raw/main/Release/GyroPadHost-Windows.exe" class="btn-download" download>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download .exe
+          </a>
+        </div>
+      </div>
+
+      <div class="dl-trust">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C5E63" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Open source on
+        <a href="https://github.com/Rushabh1697/controller-app" target="_blank" rel="noopener">GitHub</a>
+        — inspect every line of code before you run it.
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════ FAQ ═══ -->
+  <section class="faq" id="faq">
+    <div class="section-inner">
+      <div class="section-tag">FREQUENTLY ASKED</div>
+      <h2 class="section-h2">Got questions?<br />We've got answers.</h2>
+
+      <div class="faq-list">
+        <details class="faq-item">
+          <summary>Do I need to create an account or sign up?</summary>
+          <p>No. Releases are directly accessible <code>.apk</code> and <code>.exe</code> files without signing up or creating an account. Download and launch immediately.</p>
+        </details>
+        <details class="faq-item">
+          <summary>What connection method should I use?</summary>
+          <p><strong>USB</strong> gives you the absolute lowest latency (&lt;2ms) and is recommended for competitive gaming. <strong>Wi-Fi</strong> is wireless and works great for casual gaming on the same router. <strong>Bluetooth PAN</strong> works when both USB and Wi-Fi are unavailable — just enable Bluetooth Tethering on your phone.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Will using the phone touchpad freeze my keyboard or mouse?</summary>
+          <p>No. GyroPad registers as a separate virtual device. Your physical keyboard and mouse continue to work normally alongside GyroPad's touchpad input. Windows merges the inputs automatically, just like having two mice plugged in at once.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Does it work with all games?</summary>
+          <p>GyroPad emulates a standard Xbox 360 controller via ViGEmBus. Any game that supports XInput or DirectInput controllers will recognise it automatically — including Steam games, emulators, and most AAA titles. In-game button remapping also applies to GyroPad.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Is the app safe? Can others on my network connect?</summary>
+          <p>Yes, it's safe. Each session generates a fresh 4-digit PIN displayed only on your phone screen. Anyone attempting to connect must enter that PIN before the stream starts. The source code is fully open on GitHub for inspection.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════ FOOTER ═══ -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="assets/logo.png" alt="GyroPad" width="28" height="28" />
+        <span>GyroPad</span>
+      </div>
+      <nav class="footer-links">
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#download">Download</a>
+        <a href="https://github.com/Rushabh1697/controller-app" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <p class="footer-copy">© 2026 GyroPad. Free &amp; Open Source. Built with ♥</p>
+    </div>
+  </footer>
+
+  <!-- Mobile sticky download bar -->
+  <div class="mobile-sticky" id="mobileSticky">
+    <a href="#download" class="btn-sticky">⬇ Get GyroPad Free</a>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

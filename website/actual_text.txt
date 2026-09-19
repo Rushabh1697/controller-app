@@ -1,0 +1,67 @@
+Section - 2. HERO SECTION
+Ambient Glow Behind Device
+Section - 2. HERO SECTION paints
+Hero Copy Content (Column 1-7)
+Connection Status Badge
+Heading 1 - Main Headline
+Micro Copy Reassurance
+Hero Mockup Display (Column 8-12)
+Phone Horizontal Mockup Outer Case
+Phone Horizontal Mockup Outer Case:shadow
+Screen Bezel Screen Inner Area
+Phone Top Bar HUD Telemetry
+Note: backdrop-filter has minimal browser support
+Central Visual Horizon Level Bar
+Controller Surface Interactive Simulation Mockup
+Left Side: D-Pad & Left Stick
+Left Thumbstick Position
+Left Thumbstick Position:shadow
+Right Side: Console-Style Geometric Action Buttons & Right Stick
+Geometric Action Diamond
+Right Thumbstick:shadow
+Floating Hardware Spec Chip
+Floating Hardware Spec Chip:shadow
+Section - 3. FEATURES GRID SECTION
+Tilt Steering & Racing Mode
+Real-time 6-axis gyroscope and accelerometer tracking tuned for sim racing and arcade driving, featuring custom deadzones and smoothing algorithms.
+Full Console-Style Layout
+Tri-Mode Connectivity
+Seamlessly connect over local Wi-Fi with auto- discovery, low-energy Bluetooth, or tethered USB for sub-millisecond input response.
+Use your phone screen as an integrated PC trackpad with tap-to-click and scroll wheel gestures for navigating game menus and desktop launchers without reaching for a mouse.
+Custom Button Remapping
+Deep configuration studio allowing custom profiles per game, deadzone tuning, gyro sensitivity curves, and turbo triggers.
+PIN-Protected Pairing
+Section - 4. HOW IT WORKS (3-Step Visual Sequence)
+Heading 3 → Install on Phone & PC
+Heading 3 → Enter the PIN
+Heading 3 → Jump In & Play
+Mockup 1: Mobile Controller Interface
+Mockup 1: Mobile Controller Interface:shadow
+Mobile Controller Interface
+Sleek landscape phone frame with dark ergonomic HUD, glowing tilt horizon bar, and dual touch sticks.
+Graphic Representation of Mobile UI
+Mockup 2: Desktop Host Client
+Mockup 2: Desktop Host Client:shadow
+Windows 11 fluent app window showing connected devices, ping latency (1.8ms), battery level (84%), and connection mode.
+Graphic Representation of Desktop App
+Mockup 3: Profile & Remapping Editor
+Mockup 3: Profile & Remapping Editor:shadow
+Profile & Remapping Editor
+Graphic Representation of Mapping Studio
+Sliders representation
+Section - 6. SYSTEM REQUIREMENTS (Checklist Box)
+Background+Border+Shadow
+Section - 7. DOWNLOAD SECTION (High Impact CTA Cards)
+Card 1: Android Download
+Card 1: Android Download:shadow
+Version 1.4.2 • ~12 MB • Android 8.0+ Install the virtual controller client directly on your smartphone.
+Card 2: Windows Download
+Card 2: Windows Download:shadow
+Trust Badge & GitHub Link
+Section - 8. FREQUENTLY ASKED QUESTIONS (Accordion Style)
+Details - FAQ Item 1:shadow
+No, releases are directly accessible .apk and .exe files without signing up or creating an account. You can download and launch immediately.
+Details - FAQ Item 2:shadow
+Details - FAQ Item 3:shadow
+Details - FAQ Item 4:shadow
+Details - FAQ Item 5:shadow

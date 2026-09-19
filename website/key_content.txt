@@ -1,0 +1,16 @@
+/* Subtitle → Turn any modern Android smartphone into a high-performance virtual gamepad for
+your Windows PC with real-time gyro tilt-steering, full analog controls, and zero
+bloatware. */
+===
+/* Heading 3 → Install on Phone & PC */
+===
+/* Heading 3 → Enter the PIN */
+===
+/* Heading 3 → Jump In & Play */
+===
+/* Download for Android */
+===
+/* Download for Windows */
+===
+/* Connection Status Badge */
+===
