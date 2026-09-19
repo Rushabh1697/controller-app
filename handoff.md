@@ -61,10 +61,11 @@
    * Clicking **"View raw"** or the download button downloads the file normally.
    * The website download links use GitHub's direct `/raw/` endpoints, which bypass the preview page and immediately trigger file download.
 
-### 📌 Immediate Next Steps for Next Session:
-* [ ] Run `git add .`, `git commit -m "feat: website, agentation toolbar, and updated handoff"`, and `git push origin main` to push the new files to GitHub.
-* [ ] (Optional) Create an official GitHub Release tagged `v1.0.0` at [releases/new](https://github.com/Rushabh1697/controller-app/releases/new) and attach `Release/GyroPad-Android.apk` and `Release/GyroPadHost-Windows.exe`.
-* [ ] Deploy to Vercel by importing `Rushabh1697/controller-app` on [vercel.com](https://vercel.com).
+### 📌 Current State & Next Steps:
+* [x] **Git Repository Synced:** Local branch rebased and pushed cleanly to GitHub `origin/main` (commit `ce6d3cf`). Includes website, Agentation toolbar, Vercel configuration, and .gitignore.
+* [x] **Tag v1.0.0:** Tag fetched and verified from remote repository.
+* [ ] (Optional) Ensure `Release/GyroPad-Android.apk` and `Release/GyroPadHost-Windows.exe` are attached to the `v1.0.0` release assets on GitHub if not already attached.
+* [ ] Deploy to Vercel by importing `Rushabh1697/controller-app` on [vercel.com](https://vercel.com). Root `vercel.json` will automatically publish `website/`.
 * [ ] Test end-to-end streaming live on physical hardware (Android phone + PC over USB, Wi-Fi, or Bluetooth).
 
 ---
