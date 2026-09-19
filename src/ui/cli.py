@@ -6,6 +6,8 @@ from src.service.mapper import InputMapper
 class CLI:
     def __init__(self, service: DetectorService):
         self.service = service
+        self.target_serial = None
+        self.ambiguous_devices = []
 
     def print_header(self):
         print("╔══════════════════════════════════════╗")
@@ -16,7 +18,7 @@ class CLI:
     def render(self):
         self.print_header()
         
-        result = self.service.detect()
+        result = self.service.detect(self.target_serial)
         
         if result.errors:
             # Handle multiple devices or no device
@@ -24,18 +26,21 @@ class CLI:
             if "AMBIGUOUS_DEVICE" in error_codes:
                 print("Multiple devices detected:")
                 print()
-                devices = self.service.transport.list_devices()
-                for i, dev in enumerate(devices):
+                self.ambiguous_devices = self.service.transport.list_devices()
+                for i, dev in enumerate(self.ambiguous_devices):
                     print(f"  [{i+1}] {dev['serial']}    ({dev['state']})")
                 print()
-                print("Select a device (1-X) not fully supported in this simple render yet, or [q] to quit")
+                print("Select a device by typing its number, or [q] to quit")
                 return
             else:
                 for error in result.errors:
                     print(f"⚠ {error.message}")
                 print()
                 print("[r] Retry   [q] Quit")
+                self.ambiguous_devices = []
                 return
+                
+        self.ambiguous_devices = []
                 
         device = result.device
         if device:
@@ -74,6 +79,23 @@ class CLI:
             print("⚠ Unknown state. No device details.")
             print()
             print("[r] Retry   [q] Quit")
+
+    def run_json(self):
+        import json
+        from dataclasses import asdict
+        result = self.service.detect()
+        out = {
+            "device": asdict(result.device) if result.device else None,
+            "connection": {
+                "transport": result.connection.transport.name,
+                "status": result.connection.status.name,
+                "device_id": result.connection.device_id,
+                "timestamp": result.connection.timestamp
+            } if result.connection else None,
+            "sensors": [asdict(s) for s in result.sensors] if result.sensors else [],
+            "errors": [asdict(e) for e in result.errors] if result.errors else []
+        }
+        print(json.dumps(out, indent=2))
 
     def run_live_mode(self, device):
         print("\033c", end="")
@@ -129,6 +151,7 @@ class CLI:
             ping_queue = collections.deque()
             latencies = []
             mapper = InputMapper()
+            buffer = ""
             
             while True:
                 now = time.time()
@@ -144,16 +167,20 @@ class CLI:
                 try:
                     ready = select.select([s], [], [], 0.01)
                     if ready[0]:
-                        data = s.recv(1024)
+                        data = s.recv(4096)
                         if not data:
                             break
                         
-                        receive_time = time.time()
-                        text = data.decode('utf-8').strip()
-                        # Could be multiple JSONs if they bundled up
-                        for line in text.split('\n'):
+                        buffer += data.decode('utf-8')
+                        while '\n' in buffer:
+                            line, buffer = buffer.split('\n', 1)
                             if line.strip():
-                                payload = json.loads(line)
+                                receive_time = time.time()
+                                try:
+                                    payload = json.loads(line)
+                                except json.JSONDecodeError:
+                                    continue
+                                
                                 acc = payload['accel']
                                 gyr = payload['gyro']
                                 buttons = payload.get('buttons', {})
@@ -320,7 +347,7 @@ class CLI:
                 elif cmd == 'r':
                     continue
                 elif cmd == 'l':
-                    result = self.service.detect()
+                    result = self.service.detect(self.target_serial)
                     if result.device:
                         # Give it some space to write the live lines the first time
                         print("\n\n\n\n\n\n\n\n\n\n\n\n")
@@ -328,6 +355,13 @@ class CLI:
                     else:
                         print("No device connected. Cannot enter live mode.")
                         input("Press Enter to go back.")
+                elif cmd.isdigit() and self.ambiguous_devices:
+                    idx = int(cmd) - 1
+                    if 0 <= idx < len(self.ambiguous_devices):
+                        self.target_serial = self.ambiguous_devices[idx]["serial"]
+                    else:
+                        print("Invalid selection.")
+                        input("Press Enter to continue.")
             except EOFError:
                 break
             except KeyboardInterrupt:

@@ -82,9 +82,16 @@ ADB is **not** used to stream live sensor values in Phase 1 — see the limitati
 - Act as, or emulate, a game controller.
 - Modify or configure anything on the phone.
 
-## Future Development Phases
+## Current Development Status
 
-Phase 1 (this repo, initial scope) is followed by nine more phases, from adding a companion Android app for real sensor streaming, through latency measurement, to the full wireless PS5-style controller. Full roadmap: [`DEVELOPMENT_PLAN.md`](DEVELOPMENT_PLAN.md).
+Phase 1 through Phase 9 have now been implemented.
+The project currently includes:
+- A CLI tool (`python main.py`) for device discovery and sensor diagnostics (Phase 1-2).
+- An Android Companion App built with Flutter (`companion_app/`) featuring a PS5-style layout (Phase 3-4, 9).
+- A virtual gamepad bridge (vgamepad) translating sensor motions to Xbox inputs (Phase 6-7).
+- A Desktop Configuration GUI (`python main.py --gui`) for profile selection and axis deadzone settings (Phase 9).
+
+Full roadmap and milestone progress can be found in [`DEVELOPMENT_PLAN.md`](DEVELOPMENT_PLAN.md).
 
 ## Basic Setup Requirements
 

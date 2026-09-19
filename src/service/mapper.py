@@ -48,6 +48,8 @@ class AxisMapper:
 class InputMapper:
     def __init__(self, mode="landscape"):
         self.mode = mode
+        self.accel_offset = [0.0, 0.0, 0.0]
+        self.gyro_offset = [0.0, 0.0, 0.0]
         
         if self.mode == "landscape":
             # For Racing mode! (Hold phone horizontally, top of phone pointing to your LEFT)
@@ -71,25 +73,32 @@ class InputMapper:
             # We'll subtract an offset so 45 degrees is neutral.
             self.throttle = AxisMapper(max_val=5.0, deadzone=0.15, invert=False, smoothing_window=4)
         
+    def set_calibration(self, accel: list, gyro: list):
+        self.accel_offset = list(accel)
+        self.gyro_offset = list(gyro)
+        
     def process(self, accel: list, gyro: list) -> dict:
         """
         Converts raw sensor arrays into normalized controller axes.
         """
+        # Apply calibration offsets
+        calibrated_accel = [a - o for a, o in zip(accel, self.accel_offset)]
+        
         if self.mode == "landscape":
             # Accel Y (accel[1]) is steering
-            st = self.steering.process(accel[1])
+            st = self.steering.process(calibrated_accel[1])
             
             # Accel Z (accel[2]) is throttle/pitch
             # Subtract 5.0 so the neutral "held at an angle" position is 0 throttle
-            raw_throttle = accel[2] - 5.0
+            raw_throttle = calibrated_accel[2] - 5.0
             th = self.throttle.process(raw_throttle)
             
         else:
             # Portrait
-            st = self.steering.process(accel[0])
+            st = self.steering.process(calibrated_accel[0])
             
             # Subtract 5.0 so neutral 45-degree angle is 0 throttle
-            raw_throttle = accel[1] - 5.0
+            raw_throttle = calibrated_accel[1] - 5.0
             th = self.throttle.process(raw_throttle)
             
         return {

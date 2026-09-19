@@ -35,6 +35,8 @@ class AdbTransport(TransportInterface):
                 if len(parts) >= 2:
                     serial = parts[0]
                     state = parts[1]
+                    if state == "no" and len(parts) > 2 and parts[2].startswith("permission"):
+                        state = "no permissions"
                     devices.append({"serial": serial, "state": state})
             return devices
         except FileNotFoundError:

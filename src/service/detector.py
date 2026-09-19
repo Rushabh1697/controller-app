@@ -10,7 +10,7 @@ class DetectorService:
     def __init__(self, transport: TransportInterface):
         self.transport = transport
 
-    def detect(self) -> DetectorResult:
+    def detect(self, target_serial: Optional[str] = None) -> DetectorResult:
         timestamp = datetime.utcnow().isoformat() + "Z"
         errors = []
         
@@ -45,7 +45,22 @@ class DetectorService:
                 timestamp=timestamp
             )
             
-        if len(devices) > 1:
+        target = None
+        if target_serial:
+            for d in devices:
+                if d["serial"] == target_serial:
+                    target = d
+                    break
+            if not target:
+                errors.append(Error("DEVICE_NOT_FOUND", f"Target device {target_serial} not found.", ErrorCategory.CONNECTION, False))
+                return DetectorResult(
+                    device=None,
+                    sensors=[],
+                    connection=Connection(transport_type, target_serial, ConnectionStatus.DISCONNECTED, timestamp),
+                    errors=errors,
+                    timestamp=timestamp
+                )
+        elif len(devices) > 1:
             errors.append(Error("AMBIGUOUS_DEVICE", "Multiple devices connected. Please specify one.", ErrorCategory.CONNECTION, False))
             return DetectorResult(
                 device=None,
@@ -54,8 +69,9 @@ class DetectorService:
                 errors=errors,
                 timestamp=timestamp
             )
+        else:
+            target = devices[0]
 
-        target = devices[0]
         serial = target["serial"]
         raw_state = target["state"]
 
