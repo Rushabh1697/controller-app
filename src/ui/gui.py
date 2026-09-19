@@ -235,10 +235,10 @@ class ControllerGUI:
                 gamepad = vg.VX360Gamepad()
                 vg_available = True
                 self.log("Virtual gamepad initialized.")
-            except ImportError:
+            except (ImportError, Exception) as e:
                 gamepad = None
                 vg_available = False
-                self.log("vgamepad not installed! Controller emulation disabled.")
+                self.log(f"Virtual controller disabled: {e}. (Install ViGEmBus to enable Xbox 360 emulation).")
                 
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(2.0)

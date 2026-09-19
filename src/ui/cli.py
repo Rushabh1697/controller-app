@@ -147,7 +147,7 @@ class CLI:
                 import vgamepad as vg
                 gamepad = vg.VX360Gamepad()
                 vg_available = True
-            except ImportError:
+            except (ImportError, Exception):
                 gamepad = None
                 vg_available = False
             
