@@ -54,6 +54,7 @@
    * **[Bug #9 Fixed]** Absent-sensor placeholder names now generated directly from `TYPE_` constants via `_get_friendly_type_from_constant()`.
    * **[Bug #10 Fixed]** GUI validates PIN is exactly 4 numeric digits before sending `AUTH`.
    * **[Bug #12 Fixed]** `WifiTransport` accepts a `transport_name` parameter. `main.py` passes `transport_name="Bluetooth"` for `--bluetooth` mode. `detector.py` reads this attribute to correctly label transport type.
+   * **[CLI WinError 10053 Fixed]** `cli.py` formerly opened the TCP socket and then blocked on `input("Enter PIN: ")`. Because entering the PIN took several seconds, the idle connection was aborted by Android/ADB (`[WinError 10053]`). Resolved by prompting for the PIN before connecting, then establishing socket and sending `AUTH` immediately within <1ms.
 3. **Official Website (`website/`):**
    * Full 8-section responsive landing page constructed using Figma design specifications (Roboto Flex typography, `#00439C` blue theme).
    * Sections: Sticky Glass Navbar, Hero with simulated HUD horizon tilt, Features Bento Grid with mobile scroll-snap carousel, 3-Step Setup, Interactive Tabbed App Showcase, System Requirements, Download Cards with mobile tab switcher, and FAQ Accordion.
