@@ -151,26 +151,42 @@ class CLI:
                 gamepad = None
                 vg_available = False
             
-            # Connect to socket
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(2.0)
-            
-            print(f"Connecting to socket at {target_ip}:5050...")
-            try:
-                s.connect((target_ip, 5050))
-            except ConnectionRefusedError:
-                print("Connection refused. Is the Companion App running on the phone?")
+            pin = input("Enter the 4-digit PIN displayed on the app: ").strip()
+            if not pin.isdigit() or len(pin) != 4:
+                print("Error: PIN must be exactly 4 numeric digits (e.g. 9695).")
                 print("Press Enter to go back.")
                 input("> ")
                 return
 
-            print("Connected!")
+            # Connect to socket
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(4.0)
             
-            pin = input("Enter the 4-digit PIN displayed on the app: ").strip()
-            s.sendall(f"AUTH {pin}\n".encode('utf-8'))
-            auth_resp = s.recv(1024).decode('utf-8').strip()
+            print(f"Connecting to socket at {target_ip}:5050...")
+            try:
+                s.connect((target_ip, 5050))
+            except (ConnectionRefusedError, TimeoutError, OSError) as e:
+                print(f"Connection failed: {e}")
+                print("Is the GyroPad app open on your phone? Make sure the screen is unlocked.")
+                print("Press Enter to go back.")
+                input("> ")
+                return
+
+            print("Connected! Authenticating...")
+            try:
+                s.sendall(f"AUTH {pin}\n".encode('utf-8'))
+                auth_resp = s.recv(1024).decode('utf-8').strip()
+            except (OSError, socket.error) as e:
+                print(f"Connection error during authentication: {e}")
+                print("Make sure the GyroPad app is actively open and visible on your phone.")
+                print("Press Enter to go back.")
+                input("> ")
+                s.close()
+                return
+
             if auth_resp != "AUTH_OK":
-                print(f"Authentication failed: {auth_resp}")
+                print(f"Authentication failed: {auth_resp} (PIN entered: {pin})")
+                print("Check the current PIN on your phone screen and try again.")
                 print("Press Enter to go back.")
                 input("> ")
                 s.close()
