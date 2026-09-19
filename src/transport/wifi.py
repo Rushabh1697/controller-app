@@ -1,27 +1,32 @@
-import socket
+import socket as _socket
 from typing import List, Dict, Any
 from .interface import TransportInterface
 
 class WifiTransport(TransportInterface):
-    def __init__(self, target_ip: str):
+    def __init__(self, target_ip: str, transport_name: str = "Wi-Fi"):
         self.target_ip = target_ip
         self.port = 5050
-        self.name = "Wi-Fi"
+        self.name = transport_name
+        self.transport_name = transport_name  # ✅ Bug #12: expose name for detector
 
     def list_devices(self) -> List[Dict[str, Any]]:
         if not self.target_ip:
             return []
-            
-        try:
-            # Quick check to see if the port is open
-            with socket.create_connection((self.target_ip, self.port), timeout=1.0):
-                return [{"serial": self.target_ip, "state": "device"}]
-        except OSError:
-            return [{"serial": self.target_ip, "state": "offline"}]
+
+        # ✅ Bug #7: use connect_ex (non-blocking probe) instead of create_connection
+        # which completes a full handshake and then immediately drops the socket,
+        # flooding the Flutter server with half-connections.
+        sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+        sock.settimeout(1.0)
+        result = sock.connect_ex((self.target_ip, self.port))
+        sock.close()
+        if result == 0:
+            return [{"serial": self.target_ip, "state": "device"}]
+        return [{"serial": self.target_ip, "state": "offline"}]
 
     def get_device_info(self, device_id: str) -> Dict[str, str]:
         return {
-            "manufacturer": "Wi-Fi",
+            "manufacturer": self.transport_name,  # reflects Wi-Fi or Bluetooth
             "model": "Device",
             "android_version": "?",
             "sdk_level": 0,

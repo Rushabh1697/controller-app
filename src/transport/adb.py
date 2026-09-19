@@ -94,8 +94,9 @@ class AdbTransport(TransportInterface):
              raise RuntimeError(f"Command failed: {e.stderr}")
 
     def run_command(self, device_id: str, command: str) -> str:
+        import shlex
         try:
-            cmd = [self.adb_path, "-s", device_id, "shell"] + command.split()
+            cmd = [self.adb_path, "-s", device_id, "shell"] + shlex.split(command)  # ✅ handles quoted args
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             return result.stdout
         except subprocess.CalledProcessError as e:

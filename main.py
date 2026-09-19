@@ -28,7 +28,7 @@ def main():
     elif args.bluetooth:
         # Default IP for Android Bluetooth Tethering PAN is usually 192.168.44.1
         print("Using Bluetooth PAN Transport (IP: 192.168.44.1)")
-        transport = WifiTransport("192.168.44.1")
+        transport = WifiTransport("192.168.44.1", transport_name="Bluetooth")  # ✅ Bug #12
     else:
         transport = AdbTransport()
         

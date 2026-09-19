@@ -1,7 +1,26 @@
 import os
+import sys
 import json
 
-MAPPING_FILE = os.path.join(os.path.dirname(__file__), "mapping.json")
+
+def _get_data_dir() -> str:
+    """Returns a writable, user-specific directory that survives PyInstaller packaging.
+    On Windows: C:\\Users\\<user>\\AppData\\Roaming\\GyroPad
+    On other platforms: ~/.GyroPad
+    """
+    if sys.platform == "win32":
+        base = os.environ.get("APPDATA", os.path.expanduser("~"))
+    else:
+        base = os.path.expanduser("~")
+    data_dir = os.path.join(base, "GyroPad")
+    os.makedirs(data_dir, exist_ok=True)
+    return data_dir
+
+
+# ✅ Bug #8: Write to %APPDATA%\GyroPad\mapping.json instead of __file__-relative path.
+# Using __file__ inside a PyInstaller onefile .exe resolves to a temp read-only extraction
+# directory that is deleted on exit, making custom mappings impossible to persist.
+MAPPING_FILE = os.path.join(_get_data_dir(), "mapping.json")
 
 DEFAULT_MAPPING = {
     "Cross": "XUSB_GAMEPAD_A",
@@ -25,6 +44,7 @@ DEFAULT_MAPPING = {
     "GP": "XUSB_GAMEPAD_GUIDE"
 }
 
+
 def load_mapping():
     if os.path.exists(MAPPING_FILE):
         try:
@@ -33,6 +53,7 @@ def load_mapping():
         except Exception:
             pass
     return DEFAULT_MAPPING.copy()
+
 
 def save_mapping(mapping):
     with open(MAPPING_FILE, "w") as f:

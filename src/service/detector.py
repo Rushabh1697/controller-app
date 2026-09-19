@@ -14,7 +14,13 @@ class DetectorService:
         timestamp = datetime.utcnow().isoformat() + "Z"
         errors = []
         
-        transport_type = TransportType.WIFI if hasattr(self.transport, "target_ip") else TransportType.ADB
+        transport_label = getattr(self.transport, "transport_name", None)
+        if transport_label == "Bluetooth":
+            transport_type = TransportType.BLUETOOTH
+        elif transport_label == "Wi-Fi" or hasattr(self.transport, "target_ip"):
+            transport_type = TransportType.WIFI
+        else:
+            transport_type = TransportType.ADB
         
         try:
             devices = self.transport.list_devices()

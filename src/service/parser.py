@@ -53,6 +53,14 @@ class SensorParser:
         base = raw_type.replace("android.sensor.", "").upper()
         return f"TYPE_{base}"
 
+    def _get_friendly_type_from_constant(self, constant: str) -> str:
+        """Maps TYPE_GAME_ROTATION_VECTOR → 'Game Rotation Vector' directly from the
+        constant name without the brittle android.sensor. round-trip transform.
+        Bug #9: this replaces the previous approach which failed for any constant
+        not present in the _get_friendly_type dict after re-transformation."""
+        parts = constant.replace("TYPE_", "").split("_")
+        return " ".join(p.capitalize() for p in parts)
+
     def parse_dump(self, dump_text: str) -> List[Sensor]:
         sensors = []
         in_sensor_list = False
@@ -137,7 +145,10 @@ class SensorParser:
         for expected in expected_types:
              if expected not in found_types:
                  # Add an "absent" sensor for the UI to display 'X'
-                 friendly = self._get_friendly_type(expected.replace("TYPE_", "android.sensor.").lower())
+                 # ✅ Bug #9: use _get_friendly_type_from_constant to avoid the brittle
+                 # TYPE_ → android.sensor. → _get_friendly_type round-trip that breaks
+                 # for any constant not present in the lookup dict.
+                 friendly = self._get_friendly_type_from_constant(expected)
                  sensors.append(Sensor(
                      name=friendly,
                      friendly_type=friendly,

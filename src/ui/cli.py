@@ -10,6 +10,7 @@ class CLI:
         self.target_serial = None
         self.ambiguous_devices = []
         self.mapping = load_mapping()
+        self.current_profile = "landscape"  # ✅ Bug #6: track profile for live mode
 
     def print_header(self):
         print("╔══════════════════════════════════════╗")
@@ -91,15 +92,15 @@ class CLI:
             "connection": {
                 "transport": result.connection.transport.name,
                 "status": result.connection.status.name,
-                "device_id": result.connection.device_id,
-                "timestamp": result.connection.timestamp
+                "serial": result.connection.serial,
+                "established_at": result.connection.established_at
             } if result.connection else None,
             "sensors": [asdict(s) for s in result.sensors] if result.sensors else [],
             "errors": [asdict(e) for e in result.errors] if result.errors else []
         }
         print(json.dumps(out, indent=2))
 
-    def run_live_mode(self, device):
+    def run_live_mode(self, device, profile="landscape"):
         print("\033c", end="")
         self.print_header()
         print("LIVE MODE & LATENCY (Phase 3-5)")
@@ -186,7 +187,7 @@ class CLI:
             last_ping = 0
             ping_queue = collections.deque()
             latencies = []
-            mapper = InputMapper()
+            mapper = InputMapper(mode=profile)  # ✅ use selected profile
             buffer = ""
             
             while True:
@@ -325,7 +326,7 @@ class CLI:
                                 print("".ljust(75))
                                 print(f"VIRTUAL CONTROLLER AXES & BUTTONS (Phase 6 & 7 & 9)".ljust(75))
                                 print(f"Left Stck: {final_lx:6.2f} {make_bar(final_lx)}".ljust(75))
-                                print(f"L. Thrott: {final_ly:6.2f} {make_bar(final_ly)}".ljust(75))
+                                print(f"L. Thrott: N/A (disabled)                              ".ljust(75))
                                 print(f"Right Stk: {rx:6.2f} {make_bar(rx)}".ljust(75))
                                 print(f"Face Btns: {btn_square} {btn_triangle} {btn_cross} {btn_circle}".ljust(75))
                                 print(f"D-Pad    : {btn_dpad}    Shoulders: {btn_shoulders}".ljust(75))
@@ -369,7 +370,7 @@ class CLI:
                     if result.device:
                         # Give it some space to write the live lines the first time
                         print("\n\n\n\n\n\n\n\n\n\n\n\n")
-                        self.run_live_mode(result.device)
+                        self.run_live_mode(result.device, profile=self.current_profile)
                     else:
                         print("No device connected. Cannot enter live mode.")
                         input("Press Enter to go back.")

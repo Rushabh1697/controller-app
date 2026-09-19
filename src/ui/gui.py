@@ -246,10 +246,16 @@ class ControllerGUI:
             self.log(f"Connecting to socket at {target_ip}:5050...")
             s.connect((target_ip, 5050))
             
-            # Auth
+            # Auth — validate PIN format before sending
             pin = self.pin_var.get().strip()
             if not pin:
-                self.log("ERROR: PIN is required.")
+                self.log("ERROR: PIN is required. Check the phone screen.")
+                s.close()
+                self.streaming = False
+                self.root.after(0, lambda: self.btn_start.config(text="Start Controller"))
+                return
+            if not pin.isdigit() or len(pin) != 4:
+                self.log("ERROR: PIN must be exactly 4 digits (e.g. 3847). Check the phone screen.")
                 s.close()
                 self.streaming = False
                 self.root.after(0, lambda: self.btn_start.config(text="Start Controller"))

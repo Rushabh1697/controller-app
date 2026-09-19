@@ -101,44 +101,82 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
   }
 
   void _startSensors() {
+    // ✅ Bug #11: store raw sensor values WITHOUT calling setState.
+    // These are read only by _sendSampleToClient() on ping (~50 Hz), so
+    // rebuilding the entire widget tree at ~100 Hz is wasteful and causes jank.
     _accelSub = accelerometerEventStream().listen((event) {
-      setState(() { _lastAccel = event; });
+      _lastAccel = event;  // no setState — UI doesn't need this directly
     });
     _gyroSub = gyroscopeEventStream().listen((event) {
-      setState(() { _lastGyro = event; });
+      _lastGyro = event;   // no setState — UI doesn't need this directly
     });
   }
 
   Future<void> _startServer() async {
     try {
       _serverSocket = await ServerSocket.bind(InternetAddress.anyIPv4, _port);
-      
+
       _serverSocket!.listen((Socket client) {
         bool authenticated = false;
-        
+        // ✅ Bug #3: buffer incoming bytes per client.
+        // TCP is a byte stream — there is no guarantee that "AUTH 1234\n" arrives
+        // in a single data event. On Wi-Fi or Bluetooth PAN it can arrive as two
+        // chunks (e.g. "AUTH 12" and "34\n"), causing AUTH to fail immediately.
+        final StringBuffer clientBuffer = StringBuffer();
+
         client.listen((List<int> data) {
-          String message = utf8.decode(data).trim();
-          
-          if (!authenticated) {
-            if (message == 'AUTH $_pin') {
-              authenticated = true;
-              client.writeln('AUTH_OK');
-              setState(() { _clients.add(client); });
-            } else {
-              client.writeln('AUTH_FAIL');
-              client.close();
+          clientBuffer.write(utf8.decode(data));
+          String buffered = clientBuffer.toString();
+
+          // Process all complete newline-terminated messages
+          while (buffered.contains('\n')) {
+            final int idx = buffered.indexOf('\n');
+            final String message = buffered.substring(0, idx).trim();
+            buffered = buffered.substring(idx + 1);
+
+            if (!authenticated) {
+              if (message == 'AUTH $_pin') {
+                authenticated = true;
+                client.writeln('AUTH_OK');
+                setState(() { _clients.add(client); });
+              } else {
+                client.writeln('AUTH_FAIL');
+                client.close();
+                return;
+              }
+            } else if (message.toLowerCase() == 'ping') {
+              _sendSampleToClient(client);
             }
-            return;
           }
-          
-          if (message.toLowerCase() == 'ping') {
-            _sendSampleToClient(client);
-          }
+
+          // Keep any incomplete trailing bytes for the next event
+          clientBuffer.clear();
+          clientBuffer.write(buffered);
         }, onDone: () {
-          setState(() { _clients.remove(client); });
+          // ✅ Bug #13: only setState if client was actually in the authenticated list
+          if (_clients.contains(client)) {
+            setState(() {
+              _clients.remove(client);
+              // ✅ Bug #5: reset stale touchpad accumulation when all clients disconnect
+              if (_clients.isEmpty) {
+                _touchpadDeltaX = 0.0;
+                _touchpadDeltaY = 0.0;
+              }
+            });
+          }
           client.close();
         }, onError: (error) {
-          setState(() { _clients.remove(client); });
+          // ✅ Bug #13: same guard for error path
+          if (_clients.contains(client)) {
+            setState(() {
+              _clients.remove(client);
+              // ✅ Bug #5: reset stale touchpad accumulation when all clients disconnect
+              if (_clients.isEmpty) {
+                _touchpadDeltaX = 0.0;
+                _touchpadDeltaY = 0.0;
+              }
+            });
+          }
           client.close();
         });
       });
