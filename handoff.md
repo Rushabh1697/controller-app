@@ -78,14 +78,14 @@
    * See bug fix details in each section above.
 
 ### 📌 Current State & Next Steps:
-* [x] **Git Repository Synced:** All 14 bug fixes committed to `main` (commit `026448f`). `build/`, `dist/`, and PyInstaller artifacts removed from git history and added to `.gitignore`.
+* [x] **Git Repository Synced:** All 14 bug fixes committed to `main`. `build/`, `dist/`, and PyInstaller artifacts removed from git tracking and added to `.gitignore`.
 * [x] **Tag v1.0.0:** Tag fetched and verified from remote repository.
 * [x] **Mapping storage:** Custom button mappings now persisted at `%APPDATA%\GyroPad\mapping.json` — survives updates and packaging.
-* [ ] Rebuild the Flutter APK with the Dart bug fixes applied (`flutter build apk --release`) and replace `Release/GyroPad-Android.apk`.
-* [ ] Rebuild the Python `.exe` with PyInstaller and replace `Release/GyroPadHost-Windows.exe`.
+* [x] **Rebuilt Release APK:** Built with all Flutter bug fixes applied and installed directly onto connected Vivo phone via ADB (`Release/GyroPad-Android.apk`).
+* [x] **Rebuilt Windows EXE:** Built with PyInstaller with graceful ViGEmBus fallback (`Release/GyroPadHost-Windows.exe`).
 * [ ] Push to GitHub (`git push origin main`) and optionally attach release assets to `v1.0.0`.
 * [ ] Deploy to Vercel by importing `Rushabh1697/controller-app` on [vercel.com](https://vercel.com). Root `vercel.json` will automatically publish `website/`.
-* [ ] Test end-to-end streaming live on physical hardware (Android phone + PC over USB, Wi-Fi, or Bluetooth).
+* [ ] Complete end-to-end streaming test with phone unlocked and PIN entered.
 
 ---
 
