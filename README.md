@@ -1,381 +1,955 @@
 <div align="center">
 
-<img src="companion_app/assets/images/logo.png" width="120" alt="GyroPad Logo"/>
+# 🎮 GyroPad
 
-# GyroPad
+### Turn your Android phone into a wireless game controller.
 
-**Turn your Android phone into a wireless game controller — instantly.**
+**Use your phone's buttons, touchscreen, and gyroscope to control games on your Windows PC.**
 
-[![Release](https://img.shields.io/badge/version-1.0.0-blue?style=flat-square)](./Release)
-[![Platform](https://img.shields.io/badge/platform-Windows-0078D4?style=flat-square&logo=windows)](./Release/GyroPadHost-Windows.exe)
-[![Android](https://img.shields.io/badge/android-6.0%2B-3DDC84?style=flat-square&logo=android)](./Release/GyroPad-Android.apk)
-[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](./LICENSE)
+<br>
 
-[**⬇️ Download**](#download) · [**🚀 Quick Start**](#quick-start) · [**🎮 Features**](#features) · [**📡 Connection Modes**](#connection-modes) · [**🛠️ Build from Source**](#build-from-source)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%2B%20Android-111827?style=for-the-badge)](#requirements)
+[![Flutter](https://img.shields.io/badge/Mobile-Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)](#for-developers)
+[![Python](https://img.shields.io/badge/Desktop-Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](#for-developers)
+[![License](https://img.shields.io/badge/License-MIT-22C55E?style=for-the-badge)](LICENSE)
+
+<br>
+
+<a href="https://github.com/Rushabh1697/controller-app/releases">
+  <strong>⬇️ Download</strong>
+</a>
+&nbsp;&nbsp;•&nbsp;&nbsp;
+<a href="#-quick-start">
+  <strong>🚀 Quick Start</strong>
+</a>
+&nbsp;&nbsp;•&nbsp;&nbsp;
+<a href="#-how-it-works">
+  <strong>🧩 How It Works</strong>
+</a>
+&nbsp;&nbsp;•&nbsp;&nbsp;
+<a href="#-for-developers">
+  <strong>🛠️ Developers</strong>
+</a>
 
 </div>
 
 ---
 
-## What is GyroPad?
+## ✨ What is GyroPad?
 
-GyroPad transforms your Android phone into a fully functional wireless game controller for your Windows PC. No cables, no extra hardware, no expensive accessories — just your phone and GyroPad.
+**GyroPad turns your Android phone into a game controller for your Windows PC.**
 
-Your phone's gyroscope becomes a precision aim sensor. The touchscreen becomes a complete console-style button layout. Tilt the phone like a steering wheel for racing games. The PC sees a real Xbox-compatible gamepad — works with any game that supports a controller, no configuration required on the game side.
+Instead of buying a separate controller, you can use the phone you already have.
 
-```
-  📱 Phone                         💻 PC
-  ┌─────────────────┐              ┌──────────────────────┐
-  │  GyroPad App    │──Wi-Fi/BT/──▶│  GyroPadHost.exe     │
-  │                 │    USB       │                      │
-  │  [gyroscope]    │              │  Virtual Xbox 360    │
-  │  [touchscreen]  │              │  Controller          │
-  │  [buttons]      │              │                      │
-  └─────────────────┘              └──────────┬───────────┘
-                                              │
-                                        🎮 Your Game
-```
+Your phone provides:
 
----
+- 🎮 A full console-style button layout
+- 🌀 Gyroscope / motion input
+- 🕹️ Virtual thumbsticks
+- 👆 Touch controls
+- 🏎️ Tilt-based steering for racing games
+- 🔀 Custom button mapping
+- 🔐 PIN-protected pairing
 
-## Features
+The Windows host receives the phone's input and presents it to games as a **virtual Xbox-compatible controller**.
 
-### 🎮 Full Console-Style Button Layout
-A complete DualSense-inspired controller layout rendered on your phone's screen — D-pad, face buttons (△ ○ × □), L1/L2/R1/R2 shoulder buttons, dual thumbsticks with L3/R3 click, a touchpad, Share, Options, and the GP (home) button. Every button is mapped to a standard Xbox-compatible input that Windows games recognize natively.
-
-### 🌀 Gyroscope Input
-Your phone's gyroscope drives real-time motion input. Use it for gyro aiming in shooters, or tilt-steering in racing games. Configurable sensitivity, dead zones, and smoothing — all adjustable without restarting.
-
-### 🏎️ Racing / Landscape Mode
-Hold your phone horizontally like a steering wheel. GyroPad's landscape mode maps the tilt axis directly to the left stick, giving you intuitive analogue steering for racing games like F1. Portrait mode is also supported for a more traditional held-upright position.
-
-### 🖱️ Touchpad as Mouse
-Slide your finger across the touchpad panel to move the PC mouse cursor. Useful for navigating game menus without switching away from the controller.
-
-### 🔀 Custom Button Mapping
-Remap any phone button to any Xbox controller input via the built-in mapping editor. Reassign face buttons, triggers, shoulders, and more — saved to a persistent profile so your layout survives restarts.
-
-### 🔒 PIN-Protected Pairing
-A unique 4-digit PIN is generated every time the GyroPad app starts. Only a host that enters the correct PIN can connect — no open, unsecured ports.
-
-### 📡 Three Connection Modes
-- **Wi-Fi** — lowest latency on a local network
-- **Bluetooth** — wireless without needing shared Wi-Fi (via Bluetooth PAN tethering)
-- **USB / ADB** — wired, fastest, works without any network
+> **Simple idea:**  
+> 📱 **Your Phone** → 📡 **GyroPad** → 💻 **Windows PC** → 🎮 **Your Game**
 
 ---
 
-## Download
+## 🎬 See It In Action
 
-No account required. Click the links below to download directly.
+> **Add your demo GIF/video here**
+>
+> Recommended file:
+> `assets/demo/gyropad-demo.gif`
+>
+> Then replace this section with:
+>
+> `![GyroPad Demo](assets/demo/gyropad-demo.gif)`
 
-| File | Platform | Size |
-|------|----------|------|
-| [**GyroPad-Android.apk**](./Release/GyroPad-Android.apk) | Android 6.0+ | ~42 MB |
-| [**GyroPadHost-Windows.exe**](./Release/GyroPadHost-Windows.exe) | Windows 10/11 | ~13 MB |
+<!--
+Example:
 
-> **Android:** You may need to allow "Install from unknown sources" in your phone's settings since this APK is not from the Play Store. Go to **Settings → Apps → Special app access → Install unknown apps** and allow your browser or file manager.
+<p align="center">
+  <img src="assets/demo/gyropad-demo.gif" width="850" alt="GyroPad controller demo">
+</p>
+-->
 
----
+### 📱 → 💻 → 🎮
 
-## Quick Start
-
-### Prerequisites
-
-Before you begin, make sure you have:
-
-- A Windows 10 or 11 PC
-- An Android phone (Android 6.0 / API 23 or higher)
-- Both devices on the **same Wi-Fi network** (for Wi-Fi mode), or a USB cable (for USB mode)
-- [ViGEmBus Driver](https://github.com/nefarius/ViGEmBus/releases) installed on Windows — this is what lets GyroPad create a virtual Xbox controller that games can see
-
-> **ViGEmBus** is a free, open-source Windows driver. Download the latest `ViGEmBus_Setup_<version>.exe` from its releases page and run it once. GyroPad will not be able to emulate a controller without it.
-
----
-
-### Step 1 — Install on Your Phone
-
-1. Download **GyroPad-Android.apk** from the [Download](#download) section above.
-2. Open the downloaded file on your phone. If prompted, allow installation from unknown sources.
-3. Tap **Install** and then **Open**.
-4. The app opens directly into the controller screen. You'll see a status indicator at the bottom left showing **DISCONNECTED (PIN: XXXX)** — note the 4-digit PIN.
-
-> The PIN changes every time the app is launched. Have your phone open before starting the host.
-
----
-
-### Step 2 — Run the Host on Your PC
-
-1. Download **GyroPadHost-Windows.exe** from the [Download](#download) section above.
-2. Double-click to run it. Windows Defender SmartScreen may show a warning — click **More info → Run anyway** (the app is not signed yet; source code is available here for review).
-3. The GyroPad Host window opens.
-
-**Choose your connection mode** and follow the matching section below.
-
----
-
-### Wi-Fi Connection (Recommended)
-
-Both devices must be on the same local network (same router/hotspot).
-
-1. In the GyroPad Host window, enter your **phone's local IP address** in the IP field.
-   - Find your phone's IP: **Settings → Wi-Fi → tap your network → IP address** (looks like `192.168.1.X`)
-2. Enter the **4-digit PIN** shown on the phone screen.
-3. Click **Start Controller**.
-4. The phone's status indicator turns green: **CONNECTED**.
-
-To run from the command line instead:
-```
-GyroPadHost-Windows.exe --wifi 192.168.1.42
+```text
+┌─────────────────────┐
+│      📱 PHONE       │
+│                     │
+│  🎮 Buttons         │
+│  🌀 Gyroscope       │
+│  🕹️ Joysticks       │
+│  👆 Touch controls  │
+└──────────┬──────────┘
+           │
+           │ Wi-Fi / Bluetooth / USB
+           ▼
+┌─────────────────────┐
+│     💻 WINDOWS      │
+│                     │
+│   GyroPad Host      │
+│          ↓          │
+│  Virtual Xbox Pad   │
+└──────────┬──────────┘
+           │
+           ▼
+      ┌───────────┐
+      │ 🎮 GAME   │
+      └───────────┘
 ```
 
 ---
 
-### Bluetooth Connection
+# 🚀 Download & Install
 
-Use this if you don't have shared Wi-Fi (e.g. mobile data only).
+You **do not need to build the project from source** if you simply want to use GyroPad.
 
-1. **On your phone:** go to **Settings → Bluetooth** and pair your phone with your PC (standard Bluetooth pairing).
-2. **On your phone:** go to **Settings → Network & internet → Hotspot & tethering** and turn on **Bluetooth tethering**.
-3. **On your PC:** in the system tray, open Bluetooth settings and connect to your phone's Bluetooth network access point.
-4. Run the host with the `--bluetooth` flag:
-   ```
-   GyroPadHost-Windows.exe --bluetooth
-   ```
-   Or with the GUI:
-   ```
-   GyroPadHost-Windows.exe --bluetooth --gui
-   ```
-5. Enter the PIN when prompted.
+You only need:
 
-> Bluetooth tethering routes the controller data over a TCP socket via the Bluetooth network connection — no native RFCOMM required.
+- An **Android phone**
+- A **Windows 10/11 PC**
+- The GyroPad Android app
+- The GyroPad Windows host
+- The **ViGEmBus** driver
 
-Full Bluetooth setup guide: [`files/BLUETOOTH_SETUP.md`](files/BLUETOOTH_SETUP.md)
+### 1. Download the two apps
 
----
+| What | Download | Where it runs |
+|---|---|---|
+| 📱 GyroPad Android | `GyroPad-Android.apk` | Your phone |
+| 💻 GyroPad Host | `GyroPadHost-Windows.exe` | Your Windows PC |
 
-### USB / ADB Connection
+👉 **[Download from the repository](https://github.com/Rushabh1697/controller-app/tree/main/Release)**
 
-Wired mode. Lowest possible latency. Requires Android Developer Options.
-
-1. **Enable Developer Options on your phone:**  
-   Go to **Settings → About phone** and tap **Build number** 7 times. You'll see "Developer mode enabled."
-2. **Enable USB Debugging:**  
-   Go to **Settings → System → Developer options → USB debugging** and toggle it ON.
-3. Install **ADB (Android Debug Bridge)** on your PC:
-   - Download [Android SDK Platform Tools](https://developer.android.com/tools/releases/platform-tools) and extract it.
-   - Add the extracted folder to your Windows `PATH` environment variable.
-4. Connect your phone to your PC with a **data-capable USB cable** (not a charge-only cable).
-5. On your phone, accept the **"Allow USB debugging?"** prompt.
-6. Verify the connection: open Command Prompt and run:
-   ```
-   adb devices
-   ```
-   Your phone should appear with state `device`.
-7. Run the host normally (no extra flags needed for USB):
-   ```
-   GyroPadHost-Windows.exe
-   ```
+> **Tip:** If you are just trying GyroPad for the first time, download the ready-made files from the `Release` folder. You do not need Flutter, Python, or VS Code.
 
 ---
 
-### Step 3 — Start Playing
+## 🪟 Step 1 — Prepare Your Windows PC
 
-Once connected:
+GyroPad uses **ViGEmBus** to create a virtual Xbox-compatible controller that Windows games can recognize.
 
-- The phone's status indicator turns **green**.
-- On Windows, open **Settings → Bluetooth & devices → Controllers** — you should see a new Xbox 360 controller listed.
-- Open your game, go to its controller settings, and it should detect the gamepad automatically.
-- For **racing games**: hold the phone horizontally (landscape) before connecting, select the **landscape** profile in the host, and calibrate neutral position once you're holding it comfortably.
+### Install ViGEmBus
 
----
+1. Download the latest ViGEmBus installer from the official project releases.
+2. Install it on your Windows PC.
+3. Restart Windows if the installer asks you to.
 
-## Connection Modes — At a Glance
+👉 **[Download ViGEmBus](https://github.com/nefarius/ViGEmBus/releases)**
 
-| Mode | Setup Complexity | Latency | Requires |
-|------|-----------------|---------|----------|
-| Wi-Fi | Low | ~15–30 ms | Same network |
-| Bluetooth | Medium | ~20–50 ms | BT pairing + tethering |
-| USB / ADB | Medium (one-time) | ~5–15 ms | USB debugging |
+> ⚠️ **Important:** Without ViGEmBus, GyroPad can receive input from your phone but cannot create the virtual controller that games use.
 
 ---
 
-## Profiles & Configuration
+# 📱 Step 2 — Install GyroPad on Your Phone
 
-Open the GyroPad Host GUI (`--gui` flag) for access to:
+1. Download **`GyroPad-Android.apk`**.
+2. Open the downloaded APK on your Android phone.
+3. Android may ask you to allow installation from an unknown source.
+4. Allow your browser/file manager to install the app.
+5. Tap **Install**.
+6. Open **GyroPad**.
 
-- **Profile selector** — `landscape` (racing/horizontal), `portrait` (vertical), `standard`
-- **Steering deadzone** — how much you can tilt before steering starts
-- **Edit Mapping** — remap any button to any Xbox input
-- **Calibrate Neutral** — zero the gyroscope/accelerometer at your current hold position
-- **PIN entry field** — enter the PIN shown on the phone
+When the app opens, you will see a **4-digit PIN**.
 
-To launch the GUI:
+### 🔐 Keep this PIN visible
+
+The PIN changes whenever the app starts.
+
+You will enter this PIN in the Windows host when connecting your phone.
+
+---
+
+# 💻 Step 3 — Start GyroPad on Windows
+
+1. Download **`GyroPadHost-Windows.exe`**.
+2. Double-click the file.
+3. Windows SmartScreen may show a warning because the executable is currently unsigned.
+4. If you trust the source, select:
+
+**More info → Run anyway**
+
+The source code is publicly available in this repository.
+
+The GyroPad Host window will open.
+
+---
+
+# 🔗 Step 4 — Connect Your Phone
+
+GyroPad supports three connection methods.
+
+| Connection | Best for | Setup |
+|---|---|---|
+| 📶 **Wi-Fi** | Everyday wireless gaming | ⭐ Easy |
+| 🔵 **Bluetooth** | Wireless connection without shared Wi-Fi | Medium |
+| 🔌 **USB / ADB** | Wired, low-latency gaming | Medium |
+
+### ⭐ Recommended for first-time users: Wi-Fi
+
+Both your phone and PC should be connected to the **same Wi-Fi network**.
+
+---
+
+# 📶 Wi-Fi Setup
+
+### On your phone
+
+Find your phone's local IP address.
+
+Usually:
+
+**Settings → Wi-Fi → Your connected network → IP address**
+
+It may look like:
+
+```text
+192.168.1.42
 ```
-GyroPadHost-Windows.exe --gui
-GyroPadHost-Windows.exe --gui --wifi 192.168.1.42
-GyroPadHost-Windows.exe --gui --bluetooth
+
+### On the Windows host
+
+1. Open GyroPad Host.
+2. Select/use **Wi-Fi** mode.
+3. Enter your phone's IP address.
+4. Enter the **4-digit PIN** shown in the phone app.
+5. Click **Start Controller**.
+
+If everything is correct:
+
+```text
+📱 Phone
+   │
+   │ Wi-Fi
+   ▼
+💻 GyroPad Host
+   │
+   ▼
+🎮 Virtual Xbox Controller
 ```
+
+The phone should show:
+
+**🟢 CONNECTED**
 
 ---
 
-## Build from Source
+# 🔵 Bluetooth Setup
 
-### Phone App (Flutter)
+Bluetooth mode uses **Bluetooth tethering** to create the network connection between the phone and PC.
 
-**Requirements:** Flutter SDK 3.13+, Android Studio or VS Code with Flutter extension, Android device with USB debugging enabled.
+### On Android
+
+1. Open **Settings → Bluetooth**.
+2. Pair your phone with your PC.
+3. Open **Hotspot & tethering**.
+4. Enable **Bluetooth tethering**.
+
+### On Windows
+
+1. Open Bluetooth/network settings.
+2. Connect to your phone's Bluetooth network access point.
+3. Start GyroPad Host using Bluetooth mode.
+4. Enter the PIN displayed on the phone.
+
+For detailed Bluetooth instructions, see:
+
+**[`files/BLUETOOTH_SETUP.md`](files/BLUETOOTH_SETUP.md)**
+
+---
+
+# 🔌 USB / ADB Setup
+
+USB mode is useful when you want a wired connection.
+
+> ⚠️ This mode requires **Android Developer Options and USB Debugging**.
+
+### 1. Enable Developer Options
+
+On your Android phone:
+
+**Settings → About phone → tap Build number 7 times**
+
+Android will tell you that Developer Options have been enabled.
+
+### 2. Enable USB Debugging
+
+Go to:
+
+**Settings → System → Developer options → USB debugging**
+
+Turn it on.
+
+### 3. Install Android Platform Tools
+
+Download Google's **Android SDK Platform Tools**:
+
+👉 **[Download Platform Tools](https://developer.android.com/tools/releases/platform-tools)**
+
+### 4. Connect your phone
+
+Use a **data-capable USB cable**.
+
+Your phone should show:
+
+> Allow USB debugging?
+
+Tap **Allow**.
+
+### 5. Check the connection
+
+Open Command Prompt on Windows and run:
 
 ```bash
-# Clone the repo
+adb devices
+```
+
+Your phone should appear with the status:
+
+```text
+device
+```
+
+Then start:
+
+```bash
+GyroPadHost-Windows.exe
+```
+
+---
+
+# 🎮 Step 5 — Start Playing
+
+Once GyroPad is connected:
+
+1. Make sure the phone says **CONNECTED**.
+2. Windows should see a virtual Xbox-compatible controller.
+3. Open your game.
+4. Go to the game's controller settings if needed.
+5. Select/use the controller.
+
+That's it.
+
+## 🏎️ For racing games
+
+For games such as **F1**:
+
+1. Hold your phone horizontally.
+2. Use the landscape controller layout.
+3. Calibrate the neutral position.
+4. Tilt your phone left/right to steer.
+
+Your phone becomes a steering wheel:
+
+```text
+          PHONE
+     ┌──────────────┐
+     │              │
+     │      📱      │
+     │              │
+     └──────────────┘
+        ↙      ↘
+      LEFT    RIGHT
+      STEER   STEER
+```
+
+---
+
+# 🎮 Features
+
+## 🕹️ Full Controller Layout
+
+GyroPad provides a console-style controller interface with:
+
+- D-pad
+- Face buttons
+- L1 / L2
+- R1 / R2
+- Left / right thumbsticks
+- L3 / R3
+- Touchpad
+- Share
+- Options
+- Home / GP button
+
+The inputs are mapped to a standard Xbox-compatible controller interface on Windows.
+
+---
+
+## 🌀 Gyroscope Controls
+
+Use your phone's motion sensors for:
+
+- 🏎️ Racing / steering
+- 🎯 Motion aiming
+- 🕹️ Analog-style motion input
+
+Gyro settings include configurable sensitivity, deadzone, smoothing, and neutral calibration.
+
+> **Tip:** Gyro controls work best when your phone has a functioning gyroscope/IMU sensor.
+
+---
+
+## 🏎️ Racing Mode
+
+Turn your phone sideways and use it like a steering wheel.
+
+```text
+        ↶ LEFT       RIGHT ↷
+
+             🏎️
+       ┌───────────────┐
+       │               │
+       │    GYROPAD    │
+       │               │
+       └───────────────┘
+```
+
+The landscape profile maps the phone's motion to steering input.
+
+---
+
+## 👆 Touchpad
+
+Use the touchpad area to move the PC mouse cursor.
+
+This can be useful when navigating menus without reaching for a physical mouse.
+
+---
+
+## 🔀 Custom Button Mapping
+
+Don't like the default layout?
+
+Use the mapping editor to change button assignments.
+
+You can remap controller inputs and save the configuration.
+
+---
+
+## 🔐 PIN-Protected Pairing
+
+Every time the phone app starts, GyroPad generates a new **4-digit PIN**.
+
+This PIN is required by the Windows host to connect.
+
+---
+
+# ⚙️ Profiles & Settings
+
+The GyroPad Host GUI provides configuration options such as:
+
+### Profile
+
+- Landscape
+- Portrait
+- Standard
+
+### Gyroscope
+
+- Steering deadzone
+- Neutral calibration
+- Sensitivity / motion configuration
+
+### Controller
+
+- Button mapping
+- Input assignments
+
+This allows you to tune GyroPad depending on the game and the way you hold your phone.
+
+---
+
+# 🧩 How GyroPad Works
+
+GyroPad is split into two parts.
+
+### 📱 Mobile App
+
+Built with **Flutter**.
+
+It handles:
+
+- Touch controls
+- Controller UI
+- Gyroscope / sensor data
+- Connection to the PC
+
+### 💻 Windows Host
+
+Built with **Python**.
+
+It handles:
+
+- Receiving phone input
+- Sensor data processing
+- Input mapping
+- Connection transports
+- Virtual controller creation
+- Desktop configuration UI
+
+### 🔄 Data Flow
+
+```text
+┌────────────────────┐
+│   📱 Flutter App   │
+│                    │
+│ Buttons + Gyro     │
+└─────────┬──────────┘
+          │
+          │ Sensor + Button Data
+          │
+    ┌─────┴─────┐
+    │           │
+  Wi-Fi    Bluetooth
+    │           │
+    └─────┬─────┘
+          │
+       USB / ADB
+          │
+          ▼
+┌────────────────────┐
+│  💻 Python Host    │
+│                    │
+│ Transport          │
+│ Parser             │
+│ Mapper             │
+│ GUI                │
+└─────────┬──────────┘
+          │
+          ▼
+┌────────────────────┐
+│  Virtual Xbox Pad  │
+└─────────┬──────────┘
+          │
+          ▼
+       🎮 GAME
+```
+
+---
+
+# 📊 Connection Comparison
+
+| Mode | Setup | Wireless | Typical latency* | Good for |
+|---|---|---:|---:|---|
+| 📶 Wi-Fi | Easy | ✅ | ~15–30 ms | Everyday gaming |
+| 🔵 Bluetooth | Medium | ✅ | ~20–50 ms | Wireless without shared Wi-Fi |
+| 🔌 USB / ADB | One-time setup | ❌ | ~5–15 ms | Lowest-latency wired use |
+
+<sub>*Latency figures are the project's current approximate measurements and can vary depending on the phone, PC, network, USB setup, and environment.</sub>
+
+---
+
+# 🛠️ Troubleshooting
+
+<details>
+<summary><strong>📱 The APK won't install</strong></summary>
+
+Android may block APKs installed outside the Play Store.
+
+Go to your Android settings and allow your browser/file manager to install unknown apps.
+
+The exact menu name varies between Android manufacturers.
+
+</details>
+
+<details>
+<summary><strong>🪟 Windows says the EXE is unsafe</strong></summary>
+
+The current Windows executable is not code-signed.
+
+If you downloaded it from this project's repository and want to continue:
+
+**More info → Run anyway**
+
+You can also inspect the source code in this repository.
+
+</details>
+
+<details>
+<summary><strong>🎮 My game doesn't detect the controller</strong></summary>
+
+Check these first:
+
+1. Make sure ViGEmBus is installed.
+2. Make sure the phone says **CONNECTED**.
+3. Restart the GyroPad Host if necessary.
+4. Check Windows controller devices.
+5. Open your game's controller settings.
+
+</details>
+
+<details>
+<summary><strong>🔐 The PIN doesn't work</strong></summary>
+
+The PIN changes every time GyroPad starts.
+
+Use the PIN currently displayed on the phone.
+
+Make sure all four digits are entered correctly.
+
+</details>
+
+<details>
+<summary><strong>🔌 USB mode doesn't detect my phone</strong></summary>
+
+Run:
+
+```bash
+adb devices
+```
+
+If your phone does not appear:
+
+- Check USB Debugging.
+- Use a data-capable cable.
+- Accept the USB debugging prompt.
+- Check that ADB is installed correctly.
+
+</details>
+
+<details>
+<summary><strong>📶 Wi-Fi feels laggy or stutters</strong></summary>
+
+Try:
+
+- Connecting both devices to the same 5 GHz Wi-Fi network.
+- Moving closer to the router.
+- Disconnecting unnecessary VPNs.
+- Using USB mode if you need the most consistent wired connection.
+
+</details>
+
+---
+
+# 🛠️ For Developers
+
+Want to modify GyroPad, build it yourself, or contribute?
+
+You can.
+
+## 📦 Requirements
+
+### Mobile
+
+- Flutter SDK 3.13+
+- Android SDK
+- Android device
+- USB debugging for development
+- VS Code or Android Studio
+
+### Windows Host
+
+- Python 3.10+
+- pip
+- ViGEmBus
+
+---
+
+## 1. Clone the Repository
+
+```bash
 git clone https://github.com/Rushabh1697/controller-app.git
-cd controller-app/companion_app
-
-# Install dependencies
-flutter pub get
-
-# Run on a connected device
-flutter run
-
-# Build a release APK
-flutter build apk --release
-# Output: build/app/outputs/flutter-apk/app-release.apk
+cd controller-app
 ```
 
-### PC Host (Python)
+---
 
-**Requirements:** Python 3.10+, pip, ViGEmBus driver installed.
+## 2. Build the Flutter App
 
 ```bash
-cd controller-app
+cd companion_app
+flutter pub get
+flutter run
+```
 
-# Install Python dependencies
+### Build a release APK
+
+```bash
+flutter build apk --release
+```
+
+The APK will be generated at:
+
+```text
+build/app/outputs/flutter-apk/app-release.apk
+```
+
+---
+
+## 3. Run the Python Host
+
+From the project root:
+
+```bash
 pip install vgamepad
+```
 
-# Run in CLI mode
+### CLI mode
+
+```bash
 python main.py
+```
 
-# Run with GUI
+### GUI mode
+
+```bash
 python main.py --gui
+```
 
-# Run over Wi-Fi
+### Wi-Fi
+
+```bash
 python main.py --wifi 192.168.1.42
+```
 
-# Run over Bluetooth
+### Bluetooth
+
+```bash
 python main.py --bluetooth
+```
 
-# Output JSON (for scripting / debugging)
+### JSON output
+
+```bash
 python main.py --json
 ```
 
-### Package the Host as a Standalone `.exe`
+---
+
+## 4. Build the Windows EXE
+
+Install PyInstaller:
 
 ```bash
 pip install pyinstaller
+```
+
+Then:
+
+```bash
 pyinstaller GyroPadHost.spec
-# Output: dist/GyroPadHost.exe
+```
+
+The packaged application will be generated in:
+
+```text
+dist/GyroPadHost.exe
 ```
 
 ---
 
-## Project Structure
+# 📁 Project Structure
 
-```
+```text
 controller-app/
-├── Release/                        # Pre-built distributable files
+│
+├── Release/
 │   ├── GyroPad-Android.apk
 │   └── GyroPadHost-Windows.exe
 │
-├── companion_app/                  # Flutter Android app (phone side)
-│   ├── lib/main.dart               # Full controller UI + sensor server
-│   └── assets/images/logo.png
+├── companion_app/              # Flutter Android application
+│   ├── lib/
+│   │   └── main.dart
+│   └── assets/
+│       └── images/
 │
-├── src/                            # Python host (PC side)
-│   ├── model/models.py             # Shared data structures
+├── src/                        # Python Windows host
+│   ├── model/
 │   ├── service/
-│   │   ├── detector.py             # Device detection orchestration
-│   │   ├── mapper.py               # Gyro/accel → controller axis mapping
-│   │   └── parser.py               # ADB sensor dump parser
+│   │   ├── detector.py
+│   │   ├── mapper.py
+│   │   └── parser.py
 │   ├── transport/
-│   │   ├── interface.py            # Abstract transport contract
-│   │   ├── adb.py                  # USB/ADB transport
-│   │   └── wifi.py                 # Wi-Fi and Bluetooth PAN transport
+│   │   ├── interface.py
+│   │   ├── adb.py
+│   │   └── wifi.py
 │   └── ui/
-│       ├── cli.py                  # Terminal interface + live mode
-│       ├── gui.py                  # Tkinter desktop GUI
-│       └── mapping_utils.py        # Button mapping load/save
+│       ├── cli.py
+│       ├── gui.py
+│       └── mapping_utils.py
 │
-├── files/                          # Design and architecture documentation
+├── files/
 │   ├── BLUETOOTH_SETUP.md
 │   ├── ARCHITECTURE.md
 │   └── ...
 │
-├── main.py                         # Entry point
-└── GyroPadHost.spec                # PyInstaller packaging spec
+├── main.py
+├── GyroPadHost.spec
+└── README.md
 ```
 
 ---
 
-## Troubleshooting
+# 🗺️ Roadmap
 
-**The app won't install on my phone**  
-Enable "Install from unknown sources." On Android 8+: **Settings → Apps → ⋮ → Special app access → Install unknown apps** → allow your browser or Files app.
-
-**Windows says the `.exe` is unsafe**  
-The executable is not code-signed yet. Click **More info → Run anyway**. You can review the full source code in this repository.
-
-**ViGEmBus not installed / controller not detected**  
-Download and install [ViGEmBus](https://github.com/nefarius/ViGEmBus/releases) then restart your PC. Without it, GyroPad can receive input from the phone but cannot emit it to games.
-
-**Authentication failed / PIN rejected**  
-Make sure you're entering the PIN currently shown on the phone screen — it changes every time the app is opened. The PIN must be exactly 4 digits.
-
-**Device not detected (USB mode)**  
-Run `adb devices` in Command Prompt. If nothing appears, check that USB debugging is enabled, your cable supports data transfer (not charge-only), and you've accepted the "Allow USB debugging?" prompt on the phone.
-
-**High latency or stuttering (Wi-Fi)**  
-Switch to USB mode for the lowest latency. On Wi-Fi, try connecting both devices to the 5 GHz band instead of 2.4 GHz, and avoid VPNs.
+| Feature | Status |
+|---|:---:|
+| 📱 Device & sensor detection | ✅ |
+| 📱 Flutter companion app | ✅ |
+| 📶 Wi-Fi transport | ✅ |
+| 🔵 Bluetooth transport | ✅ |
+| 🔌 USB / ADB transport | ✅ |
+| 🎮 Virtual Xbox controller | ✅ |
+| 🔀 Custom button mapping | ✅ |
+| 🔐 PIN authentication | ✅ |
+| 🌀 Gyro aim mode | 🚧 |
+| 📦 One-click installer | 📋 |
+| ✍️ Signed builds | 📋 |
+| 🎮 Per-game profiles | 📋 |
+| 🎚️ Trigger pressure sensitivity | 📋 |
 
 ---
 
-## Roadmap
+# 🤝 Contributing
 
-| Phase | Status | Description |
-|-------|--------|-------------|
-| Device & sensor detection | ✅ Done | ADB-based phone inspection tool |
-| Companion app (Flutter) | ✅ Done | Full controller UI, sensor streaming |
-| Wi-Fi transport | ✅ Done | TCP socket over local network |
-| Bluetooth transport | ✅ Done | Via Bluetooth PAN tethering |
-| USB / ADB transport | ✅ Done | `adb forward` port tunnelling |
-| Virtual Xbox controller | ✅ Done | Via ViGEmBus / vgamepad |
-| Custom button mapping | ✅ Done | Persistent per-user remapping |
-| PIN authentication | ✅ Done | Per-session 4-digit PIN |
-| Gyro aim mode | 🚧 In progress | Fine-tuned gyroscope-to-right-stick mapping |
-| Installer / signed build | 📋 Planned | One-click Windows installer, signed APK |
-| Profiles / per-game configs | 📋 Planned | Save and switch named controller profiles |
-| Trigger pressure sensitivity | 📋 Planned | Analogue L2/R2 via screen pressure |
+Contributions are welcome!
+
+If you find a bug or have an idea:
+
+1. Open an **Issue**.
+2. Explain what happened.
+3. Include your Android version and phone model.
+4. Include your Windows version.
+5. Mention whether you used Wi-Fi, Bluetooth, or USB.
+6. Include the error message or relevant logs.
+
+For larger changes, open an issue before starting so the approach can be discussed.
 
 ---
 
-## Contributing
+# 📸 Screenshots
 
-Bug reports, feature requests, and pull requests are welcome. Please open an issue before starting significant work so we can coordinate.
+Add screenshots here as the project UI evolves.
 
-When reporting a bug, include:
-- Your Android version and phone model
-- Your Windows version
-- Which connection mode you used (Wi-Fi / Bluetooth / USB)
-- The full error message or log output
+Recommended assets:
+
+```text
+assets/
+└── screenshots/
+    ├── mobile-controller.png
+    ├── mobile-landscape.png
+    ├── host-dashboard.png
+    ├── mapping-editor.png
+    └── connected-state.png
+```
+
+Then display them like this:
+
+<table>
+<tr>
+<td align="center">
+<img src="assets/screenshots/mobile-controller.png" width="250" alt="GyroPad mobile controller">
+<br>
+<strong>Mobile Controller</strong>
+</td>
+<td align="center">
+<img src="assets/screenshots/mobile-landscape.png" width="250" alt="GyroPad landscape racing mode">
+<br>
+<strong>Racing Mode</strong>
+</td>
+<td align="center">
+<img src="assets/screenshots/host-dashboard.png" width="400" alt="GyroPad Windows host">
+<br>
+<strong>Windows Host</strong>
+</td>
+</tr>
+</table>
 
 ---
 
-## License
+# 🔒 Privacy
 
-MIT License — see [LICENSE](./LICENSE) for details.
+GyroPad is designed around local communication between your phone and PC.
 
-GyroPad is not affiliated with, endorsed by, or in any way officially connected with Sony Interactive Entertainment. All product names and trademarks are the property of their respective owners.
+The controller data is transferred between your devices using the selected connection method:
+
+- Wi-Fi
+- Bluetooth networking
+- USB / ADB
+
+The project does not require a cloud account for controller pairing.
+
+For the latest implementation details, inspect the source code in this repository.
+
+---
+
+# ⚠️ Compatibility
+
+### Android
+
+- Android 6.0 / API 23+
+- Gyroscope recommended for motion features
+
+### Windows
+
+- Windows 10 / 11
+- ViGEmBus required for virtual controller emulation
+
+### Games
+
+GyroPad is designed for games that support standard controller/Xbox-style input.
+
+Actual game compatibility can vary depending on the game, input system, anti-cheat software, and controller configuration.
+
+---
+
+# 📚 Documentation
+
+| Document | Purpose |
+|---|---|
+| [`ARCHITECTURE.md`](files/ARCHITECTURE.md) | System architecture |
+| [`BLUETOOTH_SETUP.md`](files/BLUETOOTH_SETUP.md) | Bluetooth setup |
+| [`handoff.md`](handoff.md) | Project development notes |
+
+---
+
+# ⭐ Support the Project
+
+If GyroPad is useful to you:
+
+- ⭐ Star the repository
+- 🐛 Report bugs
+- 💡 Suggest features
+- 🔧 Submit pull requests
+- 📢 Share the project
+
+Every contribution helps improve the project.
 
 ---
 
 <div align="center">
-Made with 🎮 by <a href="https://github.com/Rushabh1697">Rushabh1697</a>
+
+## 🎮 Turn your phone into your controller.
+
+**Built with Flutter + Python + a little bit of gyro magic. 🌀**
+
+<br>
+
+[⬆️ Back to top](#-gyropad)
+
+<br>
+
+**GyroPad**  
+Open-source Android + Windows virtual controller
+
+<br>
+
+MIT License
+
 </div>
+
+---
+
+## Disclaimer
+
+GyroPad is an independent open-source project and is not affiliated with, endorsed by, or officially connected with Sony Interactive Entertainment, Microsoft, or any game publisher.
+
+All product names, logos, and trademarks belong to their respective owners.
