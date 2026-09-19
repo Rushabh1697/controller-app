@@ -23,7 +23,7 @@
 
 ---
 
-## 2. Current Status & Where We Left Off (As of Sept 19, 2026)
+## 2. Current Status & Where We Left Off (As of Sept 20, 2026)
 
 ### ✅ Completed & Fully Operational:
 1. **Companion App (Flutter/Android):**
@@ -33,14 +33,27 @@
    * Generates a 4-digit PIN on launch, starts TCP server on port 5050, requires `AUTH <PIN>\n` before streaming.
    * Touchpad delta accumulation bug fixed (`+= details.delta.dx`).
    * Production Release APK built: `Release/GyroPad-Android.apk` (~42.1 MB). Tested with `flutter analyze` (0 issues) and `flutter test` (all tests passed).
+   * **[Bug #3 Fixed]** TCP stream is now line-buffered per client using `StringBuffer` — AUTH no longer fails when packets arrive fragmented over Wi-Fi or Bluetooth.
+   * **[Bug #5 Fixed]** Touchpad delta now resets to `0.0` when all clients disconnect — prevents wild mouse jump on first connection.
+   * **[Bug #11 Fixed]** Sensor events (`_accelSub`, `_gyroSub`) no longer call `setState` — eliminates 100 Hz widget rebuilds and jank.
+   * **[Bug #13 Fixed]** `_clients.remove()` in `onDone`/`onError` is now guarded with `.contains()` to avoid unnecessary `setState`.
 2. **Desktop Host (Python/Windows):**
    * Window title and argument parsers updated to "GyroPad Desktop Host".
    * Tilt throttle detection **completely removed** (games use their own triggers; tilt controls horizontal steering only).
    * **Critical Windows Mouse Freeze Fix:** Replaced untyped `ctypes.windll.user32.mouse_event` with typed `argtypes` (`DWORD, LONG, LONG, DWORD, c_size_t`) and clamped deltas to `[-60, 60]`. Physical keyboard/mouse never freeze or crash Windows LowLevelHooksTimeout.
    * Wi-Fi 4-digit PIN authentication field added to Tkinter GUI and CLI.
-   * Dynamic Button Remapping Studio (`src/ui/mapping_utils.py` + `src/ui/gui.py`) with dropdown editor saving to `src/ui/mapping.json`.
+   * Dynamic Button Remapping Studio (`src/ui/mapping_utils.py` + `src/ui/gui.py`) with dropdown editor saving to `%APPDATA%\GyroPad\mapping.json`.
    * Bluetooth PAN transport flag added (`--bluetooth`) routing to `192.168.44.1:5050`. Setup guide created at `files/BLUETOOTH_SETUP.md`.
    * Standalone Windows executable built with PyInstaller: `Release/GyroPadHost-Windows.exe` (~13.6 MB).
+   * **[Bug #1 Fixed]** `run_json()` no longer crashes — uses correct `Connection` fields `serial` and `established_at`.
+   * **[Bug #2 Fixed]** CLI live mode `L. Thrott` row now displays `N/A (disabled)` instead of misleading `0.0` bar.
+   * **[Bug #4 Fixed]** `adb.run_command()` now uses `shlex.split()` instead of `.split()` — handles paths and quoted args correctly.
+   * **[Bug #6 Fixed]** `run_live_mode()` accepts a `profile` parameter and passes it to `InputMapper`. CLI tracks `current_profile` (default `"landscape"`).
+   * **[Bug #7 Fixed]** `WifiTransport.list_devices()` uses `connect_ex` instead of `create_connection` — no longer floods the Flutter server with dropped TCP handshakes.
+   * **[Bug #8 Fixed]** `mapping.json` is now stored at `%APPDATA%\GyroPad\mapping.json` via `_get_data_dir()` — survives PyInstaller packaging.
+   * **[Bug #9 Fixed]** Absent-sensor placeholder names now generated directly from `TYPE_` constants via `_get_friendly_type_from_constant()`.
+   * **[Bug #10 Fixed]** GUI validates PIN is exactly 4 numeric digits before sending `AUTH`.
+   * **[Bug #12 Fixed]** `WifiTransport` accepts a `transport_name` parameter. `main.py` passes `transport_name="Bluetooth"` for `--bluetooth` mode. `detector.py` reads this attribute to correctly label transport type.
 3. **Official Website (`website/`):**
    * Full 8-section responsive landing page constructed using Figma design specifications (Roboto Flex typography, `#00439C` blue theme).
    * Sections: Sticky Glass Navbar, Hero with simulated HUD horizon tilt, Features Bento Grid with mobile scroll-snap carousel, 3-Step Setup, Interactive Tabbed App Showcase, System Requirements, Download Cards with mobile tab switcher, and FAQ Accordion.
@@ -60,11 +73,17 @@
    * When opening `/blob/main/Release/GyroPad-Android.apk` in a web browser, GitHub displays *"View raw (Sorry about that, but we can't show files that are this big right now.)"* because GitHub's code viewer cannot preview 42MB binary files in the browser.
    * Clicking **"View raw"** or the download button downloads the file normally.
    * The website download links use GitHub's direct `/raw/` endpoints, which bypass the preview page and immediately trigger file download.
+6. **Full Bug Audit Resolved (Sept 20, 2026):**
+   * All 14 bugs from `BUGS_AND_ISSUES.md` (commit `06a6416` audit) have been fixed and committed.
+   * See bug fix details in each section above.
 
 ### 📌 Current State & Next Steps:
-* [x] **Git Repository Synced:** Local branch rebased and pushed cleanly to GitHub `origin/main` (commit `ce6d3cf`). Includes website, Agentation toolbar, Vercel configuration, and .gitignore.
+* [x] **Git Repository Synced:** All 14 bug fixes committed to `main` (commit `026448f`). `build/`, `dist/`, and PyInstaller artifacts removed from git history and added to `.gitignore`.
 * [x] **Tag v1.0.0:** Tag fetched and verified from remote repository.
-* [ ] (Optional) Ensure `Release/GyroPad-Android.apk` and `Release/GyroPadHost-Windows.exe` are attached to the `v1.0.0` release assets on GitHub if not already attached.
+* [x] **Mapping storage:** Custom button mappings now persisted at `%APPDATA%\GyroPad\mapping.json` — survives updates and packaging.
+* [ ] Rebuild the Flutter APK with the Dart bug fixes applied (`flutter build apk --release`) and replace `Release/GyroPad-Android.apk`.
+* [ ] Rebuild the Python `.exe` with PyInstaller and replace `Release/GyroPadHost-Windows.exe`.
+* [ ] Push to GitHub (`git push origin main`) and optionally attach release assets to `v1.0.0`.
 * [ ] Deploy to Vercel by importing `Rushabh1697/controller-app` on [vercel.com](https://vercel.com). Root `vercel.json` will automatically publish `website/`.
 * [ ] Test end-to-end streaming live on physical hardware (Android phone + PC over USB, Wi-Fi, or Bluetooth).
 
