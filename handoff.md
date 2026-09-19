@@ -19,6 +19,7 @@
   * Dynamic 4-Digit Security PIN generated per session on the phone
   * In-App Button Remapping GUI saved to `mapping.json`
   * Official animated, responsive landing & download website with Vercel deployment support
+  * **Agentation Integration:** Visual UI feedback & annotation toolbar embedded directly on the website for AI pair programming.
 
 ---
 
@@ -45,18 +46,25 @@
    * Sections: Sticky Glass Navbar, Hero with simulated HUD horizon tilt, Features Bento Grid with mobile scroll-snap carousel, 3-Step Setup, Interactive Tabbed App Showcase, System Requirements, Download Cards with mobile tab switcher, and FAQ Accordion.
    * Animations: 3D card mouse tilt, button ripples, magnetic pull, typewriter hero subtitle, live gyro horizon bar, floating mockup, and staggered scroll reveals.
    * Vercel deployment configs created: root `vercel.json` (maps `outputDirectory: "website"`) and `website/vercel.json` (security headers & caching).
-   * Download buttons pointed to direct GitHub raw download links:
+   * Direct download buttons pointed to GitHub raw stream URLs:
      * Android APK: `https://github.com/Rushabh1697/controller-app/raw/main/Release/GyroPad-Android.apk`
      * Windows EXE: `https://github.com/Rushabh1697/controller-app/raw/main/Release/GyroPadHost-Windows.exe`
-4. **GitHub Binary Download Clarification:**
+4. **Agentation Visual Annotation Setup (`website/`):**
+   * Installed `agentation` (-D), `react`, `react-dom`, and `esbuild` in `website/package.json`.
+   * Created entry point `website/agentation-init.jsx` mounting `<Agentation copyToClipboard={true} />` into `#agentation-root`.
+   * Bundled into standalone minified `website/agentation.js` (615 KB) using esbuild with production env define.
+   * Injected `<script defer src="agentation.js"></script>` into `website/index.html`.
+   * When opening the website (e.g. `http://localhost:8080`), a floating toolbar appears in the bottom-right corner allowing the user to click any element, type notes/feedback, and copy structured markdown with CSS selectors for AI agents.
+   * Added `.gitignore` to prevent `node_modules/` from being tracked.
+5. **GitHub Binary Download Clarification:**
    * When opening `/blob/main/Release/GyroPad-Android.apk` in a web browser, GitHub displays *"View raw (Sorry about that, but we can't show files that are this big right now.)"* because GitHub's code viewer cannot preview 42MB binary files in the browser.
    * Clicking **"View raw"** or the download button downloads the file normally.
    * The website download links use GitHub's direct `/raw/` endpoints, which bypass the preview page and immediately trigger file download.
 
 ### 📌 Immediate Next Steps for Next Session:
-* [ ] Run `git add .`, `git commit -m "feat: complete website, vercel config, and handoff"`, and `git push origin main` to push the new `website/`, `vercel.json`, and `handoff.md` files to GitHub.
+* [ ] Run `git add .`, `git commit -m "feat: website, agentation toolbar, and updated handoff"`, and `git push origin main` to push the new files to GitHub.
 * [ ] (Optional) Create an official GitHub Release tagged `v1.0.0` at [releases/new](https://github.com/Rushabh1697/controller-app/releases/new) and attach `Release/GyroPad-Android.apk` and `Release/GyroPadHost-Windows.exe`.
-* [ ] Deploy to Vercel by importing `Rushabh1697/controller-app` on [vercel.com](https://vercel.com) (or running `vercel` inside `website/`).
+* [ ] Deploy to Vercel by importing `Rushabh1697/controller-app` on [vercel.com](https://vercel.com).
 * [ ] Test end-to-end streaming live on physical hardware (Android phone + PC over USB, Wi-Fi, or Bluetooth).
 
 ---
@@ -90,10 +98,14 @@ Controller-app/
 │   │   ├── logo.png                # Brand logo
 │   │   ├── GyroPad-Android.apk     # Local copy of APK (~42 MB)
 │   │   └── GyroPadHost-Windows.exe # Local copy of Windows EXE (~13.6 MB)
-│   ├── index.html                  # Single-page semantic HTML with 8 sections
+│   ├── index.html                  # Single-page semantic HTML with 8 sections + Agentation script
 │   ├── style.css                   # Responsive CSS design system (mobile carousel, desktop grid)
 │   ├── app.js                      # Micro-interactions, animations, 3D tilt, tabs, scrollspy
-│   └── vercel.json                 # Vercel security headers and caching configuration
+│   ├── agentation-init.jsx         # Agentation toolbar React mount script
+│   ├── agentation.js               # Bundled standalone Agentation widget
+│   ├── package.json                # npm configuration with build script
+│   ├── vercel.json                 # Vercel security headers and caching configuration
+│   └── .gitignore                  # Ignores website/node_modules/
 │
 ├── Release/                        # Production Binaries
 │   ├── GyroPad-Android.apk         # Compiled release APK
@@ -104,6 +116,7 @@ Controller-app/
 │
 ├── main.py                         # Python entry point (flags: --cli, --ip, --port, --bluetooth)
 ├── vercel.json                     # Root Vercel config mapping output to website/
+├── .gitignore                      # Root gitignore
 ├── README.md                       # Public GitHub README
 └── handoff.md                      # This universal project state & continuation guide
 ```
@@ -185,17 +198,23 @@ flutter build apk --release
 # Output: companion_app/build/app/outputs/flutter-apk/app-release.apk (copied to Release/GyroPad-Android.apk)
 ```
 
-### Running the Website Locally
+### Running the Website & Agentation
 ```powershell
+# Rebuild Agentation bundle if modified:
+cd website
+npm run build:agentation
+
+# Preview website with Agentation toolbar:
+cd ..
 python -m http.server 8080 --directory website
-# View in browser: http://localhost:8080
+# Open: http://localhost:8080
 ```
 
 ### Deploying to Vercel
 1. Commit and push changes:
    ```powershell
    git add .
-   git commit -m "feat: website and documentation updates"
+   git commit -m "feat: website, agentation toolbar, and updated handoff"
    git push origin main
    ```
 2. Open [Vercel](https://vercel.com), import `controller-app` repository. Root `vercel.json` will automatically route the deployment to the `website/` directory.

@@ -1,0 +1,9 @@
+node_modules/
+website/node_modules/
+__pycache__/
+*.pyc
+.idea/
+build/
+dist/
+*.spec
+.DS_Store
