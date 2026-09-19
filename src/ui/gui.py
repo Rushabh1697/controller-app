@@ -7,6 +7,7 @@ from src.service.detector import DetectorService
 from src.model.models import DetectorResult
 from src.service.mapper import InputMapper
 import traceback
+from src.ui.mapping_utils import load_mapping, save_mapping
 
 class ControllerGUI:
     def __init__(self, root, service: DetectorService):
@@ -19,6 +20,7 @@ class ControllerGUI:
         self.streaming = False
         self.thread = None
         self.queue = queue.Queue()
+        self.mapping = load_mapping()
         
         self.create_widgets()
         
@@ -46,15 +48,13 @@ class ControllerGUI:
         self.profile_combo = ttk.Combobox(self.frame_middle, textvariable=self.profile_var, values=["landscape", "portrait", "standard"])
         self.profile_combo.grid(row=0, column=1, padx=5, pady=5, sticky=tk.W)
         
+        self.btn_edit_map = ttk.Button(self.frame_middle, text="Edit Mapping", command=self.open_mapping_editor)
+        self.btn_edit_map.grid(row=0, column=2, padx=5, pady=5, sticky=tk.W)
+        
         ttk.Label(self.frame_middle, text="Steering Deadzone:").grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
         self.steer_deadzone = tk.DoubleVar(value=0.10)
         self.scale_steer_dz = ttk.Scale(self.frame_middle, from_=0.0, to_=0.5, orient=tk.HORIZONTAL, variable=self.steer_deadzone)
         self.scale_steer_dz.grid(row=1, column=1, padx=5, pady=5, sticky=tk.W)
-        
-        ttk.Label(self.frame_middle, text="Throttle Deadzone:").grid(row=2, column=0, padx=5, pady=5, sticky=tk.W)
-        self.throttle_deadzone = tk.DoubleVar(value=0.15)
-        self.scale_throttle_dz = ttk.Scale(self.frame_middle, from_=0.0, to_=0.5, orient=tk.HORIZONTAL, variable=self.throttle_deadzone)
-        self.scale_throttle_dz.grid(row=2, column=1, padx=5, pady=5, sticky=tk.W)
         
         # Bottom Frame: Live Data
         self.frame_bottom = ttk.LabelFrame(self.root, text="Live Output")
@@ -66,17 +66,71 @@ class ControllerGUI:
         # Actions
         self.frame_actions = ttk.Frame(self.root)
         self.frame_actions.pack(fill=tk.X, padx=10, pady=10)
+        control_frame = self.frame_actions
         
-        self.btn_start = ttk.Button(self.frame_actions, text="Start Controller", command=self.toggle_stream, state=tk.DISABLED)
+        self.btn_start = ttk.Button(control_frame, text="Start Controller", command=self.toggle_stream, state=tk.DISABLED)
         self.btn_start.pack(side=tk.LEFT, padx=5)
         
-        self.btn_calibrate = ttk.Button(self.frame_actions, text="Calibrate Neutral", command=self.calibrate, state=tk.DISABLED)
+        ttk.Label(control_frame, text="PIN:").pack(side=tk.LEFT, padx=2)
+        self.pin_var = tk.StringVar()
+        self.pin_entry = ttk.Entry(control_frame, textvariable=self.pin_var, width=6)
+        self.pin_entry.pack(side=tk.LEFT, padx=5)
+        
+        self.btn_calibrate = ttk.Button(control_frame, text="Calibrate Neutral", command=self.calibrate, state=tk.DISABLED)
         self.btn_calibrate.pack(side=tk.LEFT, padx=5)
         
         self.last_raw_accel = [0.0, 0.0, 0.0]
         self.last_raw_gyro = [0.0, 0.0, 0.0]
         self.mapper = InputMapper(mode="landscape")
         
+    def open_mapping_editor(self):
+        editor = tk.Toplevel(self.root)
+        editor.title("Edit Button Mapping")
+        editor.geometry("400x500")
+        
+        canvas = tk.Canvas(editor)
+        scrollbar = ttk.Scrollbar(editor, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        XBOX_BUTTONS = [
+            "XUSB_GAMEPAD_A", "XUSB_GAMEPAD_B", "XUSB_GAMEPAD_X", "XUSB_GAMEPAD_Y",
+            "XUSB_GAMEPAD_DPAD_UP", "XUSB_GAMEPAD_DPAD_DOWN", "XUSB_GAMEPAD_DPAD_LEFT", "XUSB_GAMEPAD_DPAD_RIGHT",
+            "XUSB_GAMEPAD_LEFT_SHOULDER", "XUSB_GAMEPAD_RIGHT_SHOULDER",
+            "XUSB_GAMEPAD_LEFT_THUMB", "XUSB_GAMEPAD_RIGHT_THUMB",
+            "XUSB_GAMEPAD_START", "XUSB_GAMEPAD_BACK", "XUSB_GAMEPAD_GUIDE",
+            "LEFT_TRIGGER", "RIGHT_TRIGGER", "NONE"
+        ]
+        
+        map_vars = {}
+        row = 0
+        for flutter_btn, xbox_btn in self.mapping.items():
+            ttk.Label(scrollable_frame, text=flutter_btn).grid(row=row, column=0, padx=10, pady=5, sticky="w")
+            var = tk.StringVar(value=xbox_btn)
+            combo = ttk.Combobox(scrollable_frame, textvariable=var, values=XBOX_BUTTONS, state="readonly", width=30)
+            combo.grid(row=row, column=1, padx=10, pady=5)
+            map_vars[flutter_btn] = var
+            row += 1
+            
+        def save():
+            for f_btn, var in map_vars.items():
+                self.mapping[f_btn] = var.get()
+            save_mapping(self.mapping)
+            self.log("Button mapping saved.")
+            editor.destroy()
+            
+        ttk.Button(scrollable_frame, text="Save", command=save).grid(row=row, column=0, columnspan=2, pady=20)
+
     def log(self, msg):
         self.queue.put(("log", msg))
         
@@ -134,8 +188,36 @@ class ControllerGUI:
             self.thread.start()
             
     def stream_loop(self):
+        if not self.device:
+            self.log("ERROR: No device connected.")
+            self.streaming = False
+            self.root.after(0, lambda: self.btn_start.config(text="Start Controller"))
+            return
+
         self.log(f"Starting stream for {self.device.serial}...")
         
+        s = None
+        is_wifi = False
+        
+        # Configure safe Windows mouse event API
+        has_mouse_api = False
+        user32 = None
+        try:
+            import ctypes
+            from ctypes import wintypes
+            user32 = ctypes.windll.user32
+            user32.mouse_event.argtypes = [
+                wintypes.DWORD,
+                wintypes.LONG,
+                wintypes.LONG,
+                wintypes.DWORD,
+                ctypes.c_size_t
+            ]
+            user32.mouse_event.restype = None
+            has_mouse_api = True
+        except Exception:
+            has_mouse_api = False
+
         try:
             is_wifi = hasattr(self.service.transport, "target_ip")
             target_ip = getattr(self.service.transport, "target_ip", '127.0.0.1')
@@ -161,9 +243,28 @@ class ControllerGUI:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(2.0)
             
-            self.log(f"Connecting to {target_ip}:5050...")
+            self.log(f"Connecting to socket at {target_ip}:5050...")
             s.connect((target_ip, 5050))
-            self.log("Connected to Companion App!")
+            
+            # Auth
+            pin = self.pin_var.get().strip()
+            if not pin:
+                self.log("ERROR: PIN is required.")
+                s.close()
+                self.streaming = False
+                self.root.after(0, lambda: self.btn_start.config(text="Start Controller"))
+                return
+                
+            s.sendall(f"AUTH {pin}\n".encode('utf-8'))
+            auth_resp = s.recv(1024).decode('utf-8').strip()
+            if auth_resp != "AUTH_OK":
+                self.log(f"Authentication failed: {auth_resp}")
+                s.close()
+                self.streaming = False
+                self.root.after(0, lambda: self.btn_start.config(text="Start Controller"))
+                return
+            
+            self.log("Connected and Authenticated!")
             
             s.setblocking(False)
             
@@ -210,7 +311,18 @@ class ControllerGUI:
                                         self.mapper.set_calibration(old_accel, old_gyro)
                                         
                                     self.mapper.steering.deadzone = self.steer_deadzone.get()
-                                    self.mapper.throttle.deadzone = self.throttle_deadzone.get()
+                                    
+                                    # Mouse control via Touchpad
+                                    if has_mouse_api:
+                                        t_dx = float(touchpad_delta.get('x', 0.0))
+                                        t_dy = float(touchpad_delta.get('y', 0.0))
+                                        dx = max(-60, min(60, int(t_dx * 1.5)))
+                                        dy = max(-60, min(60, int(t_dy * 1.5)))
+                                        if dx != 0 or dy != 0:
+                                            try:
+                                                user32.mouse_event(0x0001, dx, dy, 0, 0)
+                                            except Exception:
+                                                pass
                                     
                                     mapped = self.mapper.process(acc, gyr)
                                     st = mapped["steering"]
@@ -227,8 +339,22 @@ class ControllerGUI:
                                     if vg_available:
                                         gamepad.left_joystick_float(x_value_float=final_lx, y_value_float=final_ly)
                                         gamepad.right_joystick_float(x_value_float=rx, y_value_float=ry)
-                                        if buttons.get('Cross'): gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_A)
-                                        else: gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_A)
+                                        
+                                        lt_val = 0.0
+                                        rt_val = 0.0
+                                        for f_btn, x_btn in self.mapping.items():
+                                            is_pressed = bool(buttons.get(f_btn))
+                                            if x_btn == "LEFT_TRIGGER":
+                                                if is_pressed: lt_val = 1.0
+                                            elif x_btn == "RIGHT_TRIGGER":
+                                                if is_pressed: rt_val = 1.0
+                                            elif x_btn != "NONE" and hasattr(vg.XUSB_BUTTON, x_btn):
+                                                btn_val = getattr(vg.XUSB_BUTTON, x_btn)
+                                                if is_pressed: gamepad.press_button(button=btn_val)
+                                                else: gamepad.release_button(button=btn_val)
+                                                
+                                        gamepad.left_trigger_float(value_float=lt_val)
+                                        gamepad.right_trigger_float(value_float=rt_val)
                                         gamepad.update()
                                         
                                     # Print minimal status instead of full flood
@@ -245,12 +371,16 @@ class ControllerGUI:
         except Exception as e:
             self.log(f"Stream error: {e}")
         finally:
-            try:
-                s.close()
-            except:
-                pass
-            if not is_wifi:
-                self.service.transport.close_stream(self.device.serial, 5050)
+            if s is not None:
+                try:
+                    s.close()
+                except Exception:
+                    pass
+            if not is_wifi and self.device and hasattr(self.service.transport, "close_stream"):
+                try:
+                    self.service.transport.close_stream(self.device.serial, 5050)
+                except Exception:
+                    pass
             self.log("Stream stopped.")
             self.streaming = False
             self.root.after(0, lambda: self.btn_start.config(text="Start Controller"))

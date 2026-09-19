@@ -18,12 +18,17 @@ import argparse
 def main():
     parser = argparse.ArgumentParser(description="GyroPad Desktop Host / Controller Receiver")
     parser.add_argument("--wifi", type=str, help="IP address of the phone for Wi-Fi transport (e.g. 192.168.1.10)")
+    parser.add_argument("--bluetooth", action="store_true", help="Connect via Bluetooth Tethering (PAN) - ensures phone is tethered via Bluetooth")
     parser.add_argument("--gui", action="store_true", help="Launch the Phase 9 Desktop Controller GUI")
     parser.add_argument("--json", action="store_true", help="Output device and sensor info in JSON format (FR-24)")
     args = parser.parse_args()
 
     if args.wifi:
         transport = WifiTransport(args.wifi)
+    elif args.bluetooth:
+        # Default IP for Android Bluetooth Tethering PAN is usually 192.168.44.1
+        print("Using Bluetooth PAN Transport (IP: 192.168.44.1)")
+        transport = WifiTransport("192.168.44.1")
     else:
         transport = AdbTransport()
         

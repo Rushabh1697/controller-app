@@ -39,8 +39,6 @@ class AxisMapper:
         
         # 4. Smoothing (Moving Average)
         self.history.append(norm)
-        if not self.history:
-            return norm
         smoothed = sum(self.history) / len(self.history)
         
         return smoothed
@@ -53,25 +51,13 @@ class InputMapper:
         
         if self.mode == "landscape":
             # For Racing mode! (Hold phone horizontally, top of phone pointing to your LEFT)
-            
             # Steering: Tilting like a steering wheel changes the Y axis.
             # Steer Right -> Y goes positive. Steer Left -> Y goes negative. (No invert needed)
             self.steering = AxisMapper(max_val=6.0, deadzone=0.10, invert=False, smoothing_window=4)
-            
-            # Throttle: Pitching phone forward/backward changes the Z axis (gravity going into screen).
-            # When you hold it comfortably towards your face, Z is around +5.0.
-            # We will use an offset of 5.0 in the process loop so that comfortable = 0 throttle.
-            # Pitching forward (flat) goes to 9.8 (gas). Pitching backward (straight up) goes to 0 (brake).
-            self.throttle = AxisMapper(max_val=4.5, deadzone=0.15, invert=False, smoothing_window=4)
-            
         else:
             # Portrait mode (Hold phone vertically)
             # In portrait, tilting right makes X negative. So we MUST invert it for gamepads.
             self.steering = AxisMapper(max_val=6.0, deadzone=0.10, invert=True, smoothing_window=4)
-            
-            # Throttle uses Y. Straight up is 9.8. Laying flat is 0.
-            # We'll subtract an offset so 45 degrees is neutral.
-            self.throttle = AxisMapper(max_val=5.0, deadzone=0.15, invert=False, smoothing_window=4)
         
     def set_calibration(self, accel: list, gyro: list):
         self.accel_offset = list(accel)
@@ -87,19 +73,11 @@ class InputMapper:
         if self.mode == "landscape":
             # Accel Y (accel[1]) is steering
             st = self.steering.process(calibrated_accel[1])
-            
-            # Accel Z (accel[2]) is throttle/pitch
-            # Subtract 5.0 so the neutral "held at an angle" position is 0 throttle
-            raw_throttle = calibrated_accel[2] - 5.0
-            th = self.throttle.process(raw_throttle)
-            
+            th = 0.0
         else:
             # Portrait
             st = self.steering.process(calibrated_accel[0])
-            
-            # Subtract 5.0 so neutral 45-degree angle is 0 throttle
-            raw_throttle = calibrated_accel[1] - 5.0
-            th = self.throttle.process(raw_throttle)
+            th = 0.0
             
         return {
             "steering": st,

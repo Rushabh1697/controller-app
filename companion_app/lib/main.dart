@@ -87,11 +87,15 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
     'Share': false,
     'Touchpad': false,
     'PS': false,
+    'GP': false,
   };
+
+  String _pin = "";
 
   @override
   void initState() {
     super.initState();
+    _pin = (1000 + Random().nextInt(9000)).toString();
     _startServer();
     _startSensors();
   }
@@ -110,10 +114,23 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
       _serverSocket = await ServerSocket.bind(InternetAddress.anyIPv4, _port);
       
       _serverSocket!.listen((Socket client) {
-        setState(() { _clients.add(client); });
-
+        bool authenticated = false;
+        
         client.listen((List<int> data) {
           String message = utf8.decode(data).trim();
+          
+          if (!authenticated) {
+            if (message == 'AUTH $_pin') {
+              authenticated = true;
+              client.writeln('AUTH_OK');
+              setState(() { _clients.add(client); });
+            } else {
+              client.writeln('AUTH_FAIL');
+              client.close();
+            }
+            return;
+          }
+          
           if (message.toLowerCase() == 'ping') {
             _sendSampleToClient(client);
           }
@@ -408,8 +425,8 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
 
     return GestureDetector(
       onPanUpdate: (details) {
-        _touchpadDeltaX = details.delta.dx;
-        _touchpadDeltaY = details.delta.dy;
+        _touchpadDeltaX += details.delta.dx;
+        _touchpadDeltaY += details.delta.dy;
       },
       onTapDown: (_) => setState(() => _buttons['Touchpad'] = true),
       onTapUp: (_) => setState(() => _buttons['Touchpad'] = false),
@@ -502,11 +519,20 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
 
   // PS Button
   Widget _buildPSButton() {
-    bool isPressed = _buttons['PS']!;
+    bool isPressed = _buttons['GP'] ?? _buttons['PS'] ?? false;
     return Listener(
-      onPointerDown: (_) => setState(() => _buttons['PS'] = true),
-      onPointerUp: (_) => setState(() => _buttons['PS'] = false),
-      onPointerCancel: (_) => setState(() => _buttons['PS'] = false),
+      onPointerDown: (_) => setState(() {
+        _buttons['GP'] = true;
+        _buttons['PS'] = true;
+      }),
+      onPointerUp: (_) => setState(() {
+        _buttons['GP'] = false;
+        _buttons['PS'] = false;
+      }),
+      onPointerCancel: (_) => setState(() {
+        _buttons['GP'] = false;
+        _buttons['PS'] = false;
+      }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 50),
         width: 40,
@@ -524,7 +550,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
         ),
         child: Center(
           child: Text(
-            'PS',
+            'GP',
             style: TextStyle(
               color: isPressed ? Colors.white : Colors.white70,
               fontWeight: FontWeight.bold,
@@ -643,7 +669,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                              color: isConnected ? Colors.green : Colors.red, size: 14),
                         const SizedBox(width: 4),
                         Text(
-                          isConnected ? 'CONNECTED' : 'DISCONNECTED',
+                          isConnected ? 'CONNECTED' : 'DISCONNECTED (PIN: $_pin)',
                           style: TextStyle(
                             color: isConnected ? Colors.green : Colors.red,
                             fontSize: 10,

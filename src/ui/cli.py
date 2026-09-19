@@ -2,12 +2,14 @@ from typing import Optional
 from src.service.detector import DetectorService
 from src.model.models import DetectorResult, ConnectionStatus
 from src.service.mapper import InputMapper
+from src.ui.mapping_utils import load_mapping
 
 class CLI:
     def __init__(self, service: DetectorService):
         self.service = service
         self.target_serial = None
         self.ambiguous_devices = []
+        self.mapping = load_mapping()
 
     def print_header(self):
         print("╔══════════════════════════════════════╗")
@@ -74,7 +76,7 @@ class CLI:
             else:
                 print("No sensors detected or sensor parsing failed.")
             print()
-            print("[r] Refresh   [l] Live mode (not available yet)   [q] Quit")
+            print("[r] Refresh   [l] Live mode   [q] Quit")
         else:
             print("⚠ Unknown state. No device details.")
             print()
@@ -103,6 +105,28 @@ class CLI:
         print("LIVE MODE & LATENCY (Phase 3-5)")
         print(f"Connecting to {device.serial} via adb forward...")
         
+        s = None
+        is_wifi = False
+        
+        # Configure safe Windows mouse event API
+        has_mouse_api = False
+        user32 = None
+        try:
+            import ctypes
+            from ctypes import wintypes
+            user32 = ctypes.windll.user32
+            user32.mouse_event.argtypes = [
+                wintypes.DWORD,
+                wintypes.LONG,
+                wintypes.LONG,
+                wintypes.DWORD,
+                ctypes.c_size_t
+            ]
+            user32.mouse_event.restype = None
+            has_mouse_api = True
+        except Exception:
+            has_mouse_api = False
+
         try:
             # Forward port 5050 if ADB
             is_wifi = hasattr(self.service.transport, "target_ip")
@@ -139,7 +163,19 @@ class CLI:
                 input("> ")
                 return
 
-            print("Connected! Streaming data... (Press Ctrl+C to stop)")
+            print("Connected!")
+            
+            pin = input("Enter the 4-digit PIN displayed on the app: ").strip()
+            s.sendall(f"AUTH {pin}\n".encode('utf-8'))
+            auth_resp = s.recv(1024).decode('utf-8').strip()
+            if auth_resp != "AUTH_OK":
+                print(f"Authentication failed: {auth_resp}")
+                print("Press Enter to go back.")
+                input("> ")
+                s.close()
+                return
+
+            print("Authenticated! Streaming data... (Press Ctrl+C to stop)")
             if not vg_available:
                 print("⚠ vgamepad not installed! Run 'pip install vgamepad' to enable Windows controller emulation.")
             else:
@@ -189,12 +225,17 @@ class CLI:
                                 touchpad_delta = payload.get('touchpad_delta', {'x': 0.0, 'y': 0.0})
                                 
                                 # Mouse control via Touchpad
-                                t_dx = touchpad_delta['x']
-                                t_dy = touchpad_delta['y']
-                                if abs(t_dx) > 0.1 or abs(t_dy) > 0.1:
-                                    import ctypes
-                                    # MOUSEEVENTF_MOVE = 0x0001
-                                    ctypes.windll.user32.mouse_event(0x0001, int(t_dx * 2.0), int(t_dy * 2.0), 0, 0)
+                                if has_mouse_api:
+                                    t_dx = float(touchpad_delta.get('x', 0.0))
+                                    t_dy = float(touchpad_delta.get('y', 0.0))
+                                    # Clamp delta to prevent wild jumps or OS hook timeouts
+                                    dx = max(-60, min(60, int(t_dx * 1.5)))
+                                    dy = max(-60, min(60, int(t_dy * 1.5)))
+                                    if dx != 0 or dy != 0:
+                                        try:
+                                            user32.mouse_event(0x0001, dx, dy, 0, 0)
+                                        except Exception:
+                                            pass
                                 
                                 # Phase 5: Latency Measurement
                                 rtt = 0.0
@@ -234,49 +275,21 @@ class CLI:
                                     # Map Left and Right Joysticks
                                     gamepad.left_joystick_float(x_value_float=final_lx, y_value_float=final_ly)
                                     gamepad.right_joystick_float(x_value_float=rx, y_value_float=ry)
-                                    
-                                    # Face Buttons
-                                    if buttons.get('Cross'): gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_A)
-                                    else: gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_A)
-                                    if buttons.get('Circle'): gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_B)
-                                    else: gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_B)
-                                    if buttons.get('Square'): gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_X)
-                                    else: gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_X)
-                                    if buttons.get('Triangle'): gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_Y)
-                                    else: gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_Y)
-                                    
-                                    # D-Pad
-                                    if buttons.get('DpadUp'): gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_UP)
-                                    else: gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_UP)
-                                    if buttons.get('DpadDown'): gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN)
-                                    else: gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN)
-                                    if buttons.get('DpadLeft'): gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_LEFT)
-                                    else: gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_LEFT)
-                                    if buttons.get('DpadRight'): gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_RIGHT)
-                                    else: gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_RIGHT)
-
-                                    # Shoulders
-                                    if buttons.get('L1'): gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_LEFT_SHOULDER)
-                                    else: gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_LEFT_SHOULDER)
-                                    if buttons.get('R1'): gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_RIGHT_SHOULDER)
-                                    else: gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_RIGHT_SHOULDER)
-                                    
-                                    # Triggers (mapped to 0.0 or 1.0)
-                                    gamepad.left_trigger_float(value_float=1.0 if buttons.get('L2') else 0.0)
-                                    gamepad.right_trigger_float(value_float=1.0 if buttons.get('R2') else 0.0)
-                                    
-                                    # Menu / Special
-                                    if buttons.get('Options'): gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_START)
-                                    else: gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_START)
-                                    if buttons.get('Share') or buttons.get('Touchpad'): gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_BACK)
-                                    else: gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_BACK)
-                                    if buttons.get('PS'): gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_GUIDE)
-                                    else: gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_GUIDE)
-                                    if buttons.get('L3'): gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_LEFT_THUMB)
-                                    else: gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_LEFT_THUMB)
-                                    if buttons.get('R3'): gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_RIGHT_THUMB)
-                                    else: gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_RIGHT_THUMB)
-
+                                    lt_val = 0.0
+                                    rt_val = 0.0
+                                    for f_btn, x_btn in self.mapping.items():
+                                        is_pressed = bool(buttons.get(f_btn))
+                                        if x_btn == "LEFT_TRIGGER":
+                                            if is_pressed: lt_val = 1.0
+                                        elif x_btn == "RIGHT_TRIGGER":
+                                            if is_pressed: rt_val = 1.0
+                                        elif x_btn != "NONE" and hasattr(vg.XUSB_BUTTON, x_btn):
+                                            btn_val = getattr(vg.XUSB_BUTTON, x_btn)
+                                            if is_pressed: gamepad.press_button(button=btn_val)
+                                            else: gamepad.release_button(button=btn_val)
+                                            
+                                    gamepad.left_trigger_float(value_float=lt_val)
+                                    gamepad.right_trigger_float(value_float=rt_val)
                                     gamepad.update()
                                 
                                 # Visual bar helper for axes [-1.0, 1.0]
@@ -329,11 +342,16 @@ class CLI:
             print(f"Error: {e}")
             input("Press Enter to go back.")
         finally:
-            try:
-                s.close()
-            except:
-                pass
-            self.service.transport.close_stream(device.serial, 5050)
+            if s is not None:
+                try:
+                    s.close()
+                except Exception:
+                    pass
+            if not is_wifi and device and hasattr(self.service.transport, "close_stream"):
+                try:
+                    self.service.transport.close_stream(device.serial, 5050)
+                except Exception:
+                    pass
 
     def run(self):
         while True:
