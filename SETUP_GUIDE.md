@@ -238,3 +238,8 @@ In the GyroPad Desktop Host, the **`Emulation:`** dropdown allows switching betw
 ### Q: Why do I see TWO controllers in Hardware Tester, and one does not work?
 * **Answer:** The app uses a Windows driver (ViGEmBus) to spawn virtual gamepads. If an older buggy version of the app crashed or was force-closed without shutting down properly, Windows kept the Ghost controller plugged in. The easiest fix is to **Restart your PC** to clear the device memory.
 
+### Q: "Building with plugins requires symlink support" when running `flutter run`
+* **Answer:** If you run `flutter run` on Windows while your phone is disconnected, locked, or USB Debugging is not authorized, Flutter will try to build a Windows Desktop app instead of an Android app. Windows Desktop Flutter builds require symlink support. 
+* **Fix 1:** To build for Android, ensure your phone is connected and USB Debugging is authorized.
+* **Fix 2:** To build for Windows Desktop, press the Windows key, type **Developer Settings**, and turn **Developer Mode** ON.
+

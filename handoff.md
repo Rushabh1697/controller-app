@@ -73,9 +73,9 @@
 * [x] **All FULL_AUDIT.md bugs fixed** (excluding Bug #4 agentation.js — intentionally skipped per user instruction).
 * [x] **Git Repository Synced:** All 14 previous bug fixes + all FULL_AUDIT bugs committed to `main`.
 * [x] **Mapping storage:** Custom button mappings persisted at `%APPDATA%\GyroPad\mapping.json`.
-* [x] **Rebuilt Release APK:** Built with all Flutter bug fixes applied (`Release/GyroPad-Android.apk`).
+* [x] **Rebuilt Release APK:** Built with all Flutter bug fixes and new features applied (`Release/GyroPad-Android.apk`) — manually compiled to bypass temporary `dl.google.com` network/DNS drops on the host.
 * [x] **Rebuilt Windows EXE (GUI-first):** Built with PyInstaller (`Release/GyroPadHost-Windows.exe`).
-* [x] **Universal Setup Guide:** [`SETUP_GUIDE.md`](./SETUP_GUIDE.md) covers full step-by-step setup for both PC & mobile across USB, Bluetooth PAN, and Wi-Fi modes, controller emulation selection, in-game bindings (F1 2022), and troubleshooting. Must be maintained on every change by default.
+* [x] **Universal Setup Guide:** [`SETUP_GUIDE.md`](./SETUP_GUIDE.md) updated with sensitivity, mute button, and `flutter run` developer mode fixes.
 * [x] **Bluetooth PAN Connection Verified:** Verified raw socket connection to phone gateway (`10.18.154.11:5050`) with 0 errors.
 * [x] **ViGEmBus & PlayStation Verification:** Virtual Sony DualShock 4 / PS5 controller confirmed active (`0x054C:0x05C4`).
 * [ ] Push to GitHub (`git push origin main`) and optionally attach release assets to `v1.0.0`.
