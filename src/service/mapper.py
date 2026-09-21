@@ -53,11 +53,11 @@ class InputMapper:
             # For Racing mode! (Hold phone horizontally, top of phone pointing to your LEFT)
             # Steering: Tilting like a steering wheel changes the Y axis.
             # Steer Right -> Y goes positive. Steer Left -> Y goes negative. (No invert needed)
-            self.steering = AxisMapper(max_val=6.0, deadzone=0.10, invert=False, smoothing_window=4)
+            self.steering = AxisMapper(max_val=6.0, deadzone=0.0, invert=False, smoothing_window=4)
         else:
             # Portrait mode (Hold phone vertically)
             # In portrait, tilting right makes X negative. So we MUST invert it for gamepads.
-            self.steering = AxisMapper(max_val=6.0, deadzone=0.10, invert=True, smoothing_window=4)
+            self.steering = AxisMapper(max_val=6.0, deadzone=0.0, invert=True, smoothing_window=4)
         
     def set_calibration(self, accel: list, gyro: list):
         self.accel_offset = list(accel)

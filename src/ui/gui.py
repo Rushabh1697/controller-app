@@ -109,7 +109,7 @@ class ControllerGUI:
         self.btn_edit_map.grid(row=1, column=2, padx=10, pady=5, sticky=tk.W)
         
         ttk.Label(self.frame_middle, text="Steering Deadzone:").grid(row=2, column=0, padx=5, pady=5, sticky=tk.W)
-        self.steer_deadzone = tk.DoubleVar(value=0.10)
+        self.steer_deadzone = tk.DoubleVar(value=0.0)
         self.scale_steer_dz = ttk.Scale(self.frame_middle, from_=0.0, to_=0.5, orient=tk.HORIZONTAL, variable=self.steer_deadzone)
         self.scale_steer_dz.grid(row=2, column=1, padx=5, pady=5, sticky=tk.W)
         

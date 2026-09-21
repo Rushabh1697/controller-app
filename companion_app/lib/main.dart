@@ -334,7 +334,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
     
     Map<String, dynamic> payload = {
       'timestamp_ms': DateTime.now().millisecondsSinceEpoch,
-      'accel': [_lastAccel!.x, _lastAccel!.y, _lastAccel!.z],
+      'accel': [_lastAccel!.x * _gyroSensitivity, _lastAccel!.y * _gyroSensitivity, _lastAccel!.z * _gyroSensitivity],
       'gyro': [_lastGyro!.x * _gyroSensitivity, _lastGyro!.y * _gyroSensitivity, _lastGyro!.z * _gyroSensitivity],
       'buttons': _buttons,
       'joystick_left': {'x': _leftStickX, 'y': _leftStickY},
