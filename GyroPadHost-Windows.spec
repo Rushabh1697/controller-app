@@ -3,7 +3,7 @@ from PyInstaller.utils.hooks import collect_all
 
 datas = []
 binaries = []
-hiddenimports = []
+hiddenimports = ['src.transport.adb', 'src.transport.wifi', 'src.service.detector', 'src.ui.gui', 'src.ui.cli', 'vgamepad']
 tmp_ret = collect_all('vgamepad')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
@@ -29,14 +29,14 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='GyroPadHost',
+    name='GyroPadHost-Windows',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
