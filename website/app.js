@@ -37,18 +37,20 @@
   /* ── Hamburger menu ── */
   const toggle = document.getElementById('navToggle');
   const navLinks = document.getElementById('navLinks');
-  toggle.addEventListener('click', () => {
-    const open = toggle.classList.toggle('open');
-    navLinks.classList.toggle('open', open);
-    document.body.style.overflow = open ? 'hidden' : '';
-  });
-  navLinks.querySelectorAll('a').forEach(a => {
-    a.addEventListener('click', () => {
-      toggle.classList.remove('open');
-      navLinks.classList.remove('open');
-      document.body.style.overflow = '';
+  if (toggle && navLinks) {
+    toggle.addEventListener('click', () => {
+      const open = toggle.classList.toggle('open');
+      navLinks.classList.toggle('open', open);
+      document.body.style.overflow = open ? 'hidden' : '';
     });
-  });
+    navLinks.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', () => {
+        toggle.classList.remove('open');
+        navLinks.classList.remove('open');
+        document.body.style.overflow = '';
+      });
+    });
+  }
 
   /* ── Showcase tabs (with fade transition) ── */
   const stabs = document.querySelectorAll('.stab');

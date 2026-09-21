@@ -112,17 +112,31 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
     });
   }
 
+  final Map<String, int> _failedAttempts = {}; // Bug #8: track failed auth attempts per IP
+
   Future<void> _startServer() async {
     try {
-      _serverSocket = await ServerSocket.bind(InternetAddress.anyIPv4, _port);
+      _serverSocket = await ServerSocket.bind(
+        InternetAddress.anyIPv4,
+        _port,
+        shared: true,  // Bug #5: SO_REUSEADDR — prevents EADDRINUSE on hot-restart
+      );
 
       _serverSocket!.listen((Socket client) {
+        // Bug #2/#11: Enforce single-client policy — reject if already connected
+        if (_clients.isNotEmpty) {
+          client.writeln('BUSY');
+          client.close();
+          return;
+        }
+
         bool authenticated = false;
         // ✅ Bug #3: buffer incoming bytes per client.
         // TCP is a byte stream — there is no guarantee that "AUTH 1234\n" arrives
         // in a single data event. On Wi-Fi or Bluetooth PAN it can arrive as two
         // chunks (e.g. "AUTH 12" and "34\n"), causing AUTH to fail immediately.
         final StringBuffer clientBuffer = StringBuffer();
+        final String clientIp = client.remoteAddress.address;
 
         client.listen((List<int> data) {
           clientBuffer.write(utf8.decode(data));
@@ -135,13 +149,28 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
             buffered = buffered.substring(idx + 1);
 
             if (!authenticated) {
+              // Bug #8: Check lockout before processing auth
+              final int attempts = _failedAttempts[clientIp] ?? 0;
+              if (attempts >= 5) {
+                client.writeln('LOCKED');
+                client.close();
+                return;
+              }
+
               if (message == 'AUTH $_pin') {
+                _failedAttempts.remove(clientIp);
                 authenticated = true;
                 client.writeln('AUTH_OK');
                 setState(() { _clients.add(client); });
               } else {
-                client.writeln('AUTH_FAIL');
-                client.close();
+                _failedAttempts[clientIp] = attempts + 1;
+                // Bug #8: 500ms delay to rate-limit brute force
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  try {
+                    client.writeln('AUTH_FAIL');
+                    client.close();
+                  } catch (_) {}
+                });
                 return;
               }
             } else if (message.toLowerCase() == 'ping') {
@@ -784,8 +813,8 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                               ),
                             ),
                             const SizedBox(height: 20),
-                            // L3 Thumbstick
-                            _buildThumbstick('L3'),
+                            // L3 Thumbstick — RepaintBoundary (Bug #15: limits rebuild propagation)
+                            RepaintBoundary(child: _buildThumbstick('L3')),
                           ],
                         ),
                       ),
@@ -817,8 +846,8 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                               ),
                             ),
                             const SizedBox(height: 20),
-                            // R3 Thumbstick
-                            _buildThumbstick('R3'),
+                            // R3 Thumbstick — RepaintBoundary (Bug #15: limits rebuild propagation)
+                            RepaintBoundary(child: _buildThumbstick('R3')),
                           ],
                         ),
                       ),

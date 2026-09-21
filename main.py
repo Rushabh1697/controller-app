@@ -1,6 +1,7 @@
 import sys
 import os
 import io
+import atexit
 
 # Fix Windows console encoding for box characters (safe for --windowed mode)
 if sys.platform == "win32":
@@ -11,8 +12,13 @@ if sys.platform == "win32":
             pass
     elif sys.stdout is None:
         # Running in PyInstaller windowed mode (no console attached)
-        sys.stdout = open(os.devnull, 'w', encoding='utf-8')
-        sys.stderr = open(os.devnull, 'w', encoding='utf-8')
+        # Bug #12: register atexit to close handles so they are properly released
+        _devnull_out = open(os.devnull, 'w', encoding='utf-8')
+        _devnull_err = open(os.devnull, 'w', encoding='utf-8')
+        sys.stdout = _devnull_out
+        sys.stderr = _devnull_err
+        atexit.register(_devnull_out.close)
+        atexit.register(_devnull_err.close)
 
 # Add src to Python path so imports work
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))

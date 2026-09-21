@@ -62,6 +62,7 @@ class InputMapper:
     def set_calibration(self, accel: list, gyro: list):
         self.accel_offset = list(accel)
         self.gyro_offset = list(gyro)
+        self.steering.history.clear()  # Bug #14: flush stale smoothing samples after calibration
         
     def process(self, accel: list, gyro: list) -> dict:
         """

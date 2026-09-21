@@ -151,6 +151,21 @@ class ControllerGUI:
             self.log(f"Gamepad initialization failed: {e}")
 
     def on_transport_change(self, event=None):
+        # Bug #10: Prevent transport switch while stream is active — would cause state corruption
+        if self.streaming:
+            self.log("Cannot change transport while streaming. Stop the controller first.")
+            # Revert the combobox to the current mode
+            if hasattr(self.service.transport, "transport_name"):
+                tn = self.service.transport.transport_name
+                if tn == "Bluetooth":
+                    self.transport_var.set("Bluetooth (PAN)")
+                elif tn == "Wi-Fi":
+                    self.transport_var.set("Wi-Fi")
+                else:
+                    self.transport_var.set("USB (Cable)")
+            else:
+                self.transport_var.set("USB (Cable)")
+            return
         mode = self.transport_var.get()
         if mode == "Bluetooth (PAN)":
             from src.transport.wifi import WifiTransport, get_bluetooth_pan_ip
@@ -218,8 +233,10 @@ class ControllerGUI:
         def save():
             for f_btn, var in map_vars.items():
                 self.mapping[f_btn] = var.get()
-            save_mapping(self.mapping)
-            self.log("Button mapping saved.")
+            if save_mapping(self.mapping):
+                self.log("Button mapping saved.")
+            else:
+                self.log("ERROR: Could not save mapping file. Check disk space and permissions.")
             editor.destroy()
             
         ttk.Button(scrollable_frame, text="Save", command=save).grid(row=row, column=0, columnspan=2, pady=20)
@@ -254,12 +271,20 @@ class ControllerGUI:
     def refresh_device(self, silent=False):
         if not silent:
             self.lbl_status.config(text="Status: Detecting...", foreground="blue")
-            self.root.update()
-        
+
         mode = self.transport_var.get()
         is_wireless = hasattr(self.service.transport, "target_ip")
-        
-        result = self.service.detect()
+
+        # FREEZE FIX: run blocking network probe in a background thread to avoid
+        # blocking the Tkinter main loop for 0.6s every 2s.
+        def _detect_worker():
+            result = self.service.detect()
+            self.root.after(0, lambda: self._on_detect_result(result, mode, is_wireless, silent))
+
+        threading.Thread(target=_detect_worker, daemon=True).start()
+
+    def _on_detect_result(self, result, mode, is_wireless, silent):
+        """Called on the main thread after background detection completes."""
         if result.errors:
             if not self.device:
                 self.lbl_status.config(text="Status: Searching for device...", foreground="orange")
@@ -361,7 +386,8 @@ class ControllerGUI:
             is_ps = self.controller_type_var.get().startswith("PlayStation")
             if self._test_pad is not None:
                 try:
-                    del self._test_pad
+                    self._test_pad.reset()   # Bug #7: release all buttons before GC
+                    self._test_pad.update()
                 except Exception:
                     pass
                 self._test_pad = None
@@ -583,9 +609,9 @@ class ControllerGUI:
                                     pass
 
                 except BlockingIOError:
-                    pass
+                    pass  # expected — non-blocking socket has no data yet
                 except Exception as e:
-                    pass
+                    self.log(f"Unexpected stream error: {e}")  # Bug #3 fix: no longer silent
 
         except Exception as e:
             self.log(f"Stream error: {e}")
@@ -600,6 +626,14 @@ class ControllerGUI:
                     self.service.transport.close_stream(self.device.serial, 5050)
                 except Exception:
                     pass
+            # Bug #7: clean up test pad if streaming ends unexpectedly
+            if self._test_pad is not None:
+                try:
+                    self._test_pad.reset()
+                    self._test_pad.update()
+                except Exception:
+                    pass
+                self._test_pad = None
             self.log("Stream stopped.")
             self.streaming = False
             self.root.after(0, lambda: self.btn_start.config(text="Start Controller"))

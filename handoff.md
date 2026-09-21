@@ -23,7 +23,7 @@
 
 ---
 
-## 2. Current Status & Where We Left Off (As of Sept 20, 2026)
+## 2. Current Status & Where We Left Off (As of Sept 21, 2026)
 
 ### ✅ Completed & Fully Operational:
 1. **Companion App (Flutter/Android):**
@@ -37,70 +37,45 @@
    * **[Bug #5 Fixed]** Touchpad delta now resets to `0.0` when all clients disconnect — prevents wild mouse jump on first connection.
    * **[Bug #11 Fixed]** Sensor events (`_accelSub`, `_gyroSub`) no longer call `setState` — eliminates 100 Hz widget rebuilds and jank.
    * **[Bug #13 Fixed]** `_clients.remove()` in `onDone`/`onError` is now guarded with `.contains()` to avoid unnecessary `setState`.
-   * **[Android Release INTERNET Permission Fixed]** `companion_app/android/app/src/main/AndroidManifest.xml` was missing `<uses-permission android:name="android.permission.INTERNET" />`. In release builds, Android's kernel threw `SocketException: Failed to create server socket (Operation not permitted, errno = 1)` preventing port 5050 from opening and returning an empty response `b''`. Added `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, and `HIGH_SAMPLING_RATE_SENSORS` to main manifest, rebuilt release APK, reinstalled to phone, and verified socket communication.
+   * **[Android Release INTERNET Permission Fixed]** Added `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, and `HIGH_SAMPLING_RATE_SENSORS` to main manifest.
+   * **[FULL_AUDIT Bug #5 Fixed]** `ServerSocket.bind()` now uses `shared: true` (SO_REUSEADDR) — prevents `EADDRINUSE` on hot-restart.
+   * **[FULL_AUDIT Bug #2/#11 Fixed]** Single-client enforcement: new connections are rejected with `BUSY` if `_clients.isNotEmpty`.
+   * **[FULL_AUDIT Bug #8 Fixed]** Failed auth attempt counter per IP with 5-attempt lockout and 500ms artificial delay on AUTH_FAIL.
+   * **[FULL_AUDIT Bug #15 Fixed]** L3 and R3 thumbsticks wrapped in `RepaintBoundary` — limits rebuild propagation from touch events.
+   * **[FULL_AUDIT Bug #18 Fixed]** `applicationId` and `namespace` changed from `com.example.companion_app` to `com.gyropad.app` in `build.gradle.kts`.
 2. **Desktop Host (Python/Windows):**
    * Window title and argument parsers updated to "GyroPad Desktop Host".
    * Tilt throttle detection **completely removed** (games use their own triggers; tilt controls horizontal steering only).
-   * **Critical Windows Mouse Freeze Fix:** Replaced untyped `ctypes.windll.user32.mouse_event` with typed `argtypes` (`DWORD, LONG, LONG, DWORD, c_size_t`) and clamped deltas to `[-60, 60]`. Physical keyboard/mouse never freeze or crash Windows LowLevelHooksTimeout.
+   * **Critical Windows Mouse Freeze Fix:** Replaced untyped `ctypes.windll.user32.mouse_event` with typed `argtypes` and clamped deltas to `[-60, 60]`.
    * Wi-Fi 4-digit PIN authentication field added to Tkinter GUI and CLI.
    * Dynamic Button Remapping Studio (`src/ui/mapping_utils.py` + `src/ui/gui.py`) with dropdown editor saving to `%APPDATA%\GyroPad\mapping.json`.
-   * Bluetooth PAN transport flag added (`--bluetooth`) routing to `192.168.44.1:5050`. Setup guide created at `files/BLUETOOTH_SETUP.md`.
+   * Bluetooth PAN transport flag added (`--bluetooth`) routing to auto-detected phone IP.
    * Standalone Windows executable built with PyInstaller: `Release/GyroPadHost-Windows.exe` (~13.6 MB).
-   * **[Bug #1 Fixed]** `run_json()` no longer crashes — uses correct `Connection` fields `serial` and `established_at`.
-   * **[Bug #2 Fixed]** CLI live mode `L. Thrott` row now displays `N/A (disabled)` instead of misleading `0.0` bar.
-   * **[Bug #4 Fixed]** `adb.run_command()` now uses `shlex.split()` instead of `.split()` — handles paths and quoted args correctly.
-   * **[Bug #6 Fixed]** `run_live_mode()` accepts a `profile` parameter and passes it to `InputMapper`. CLI tracks `current_profile` (default `"landscape"`).
-   * **[Bug #7 Fixed]** `WifiTransport.list_devices()` uses `connect_ex` instead of `create_connection` — no longer floods the Flutter server with dropped TCP handshakes.
-   * **[Bug #8 Fixed]** `mapping.json` is now stored at `%APPDATA%\GyroPad\mapping.json` via `_get_data_dir()` — survives PyInstaller packaging.
-   * **[Bug #9 Fixed]** Absent-sensor placeholder names now generated directly from `TYPE_` constants via `_get_friendly_type_from_constant()`.
-   * **[Bug #10 Fixed]** GUI validates PIN is exactly 4 numeric digits before sending `AUTH`.
-   * **[Bug #12 Fixed]** `WifiTransport` accepts a `transport_name` parameter. `main.py` passes `transport_name="Bluetooth"` for `--bluetooth` mode. `detector.py` reads this attribute to correctly label transport type.
-   * **[CLI WinError 10053 Fixed]** `cli.py` formerly opened the TCP socket and then blocked on `input("Enter PIN: ")`. Because entering the PIN took several seconds, the idle connection was aborted by Android/ADB (`[WinError 10053]`). Resolved by prompting for the PIN before connecting, then establishing socket and sending `AUTH` immediately within <1ms.
+   * **[FULL_AUDIT Bug #3 Fixed]** `stream_loop` inner `except Exception: pass` replaced with specific handlers — `BlockingIOError` silenced, unexpected exceptions now logged.
+   * **[FULL_AUDIT Bug #6 Fixed]** `list_devices()` now uses `sock.settimeout(0.6) + sock.connect_ex()` instead of `create_connection()` — no more full TCP handshakes flooding the phone app.
+   * **[FULL_AUDIT Bug #7 Fixed]** `_test_pad` properly released via `reset()+update()` before `None` assignment — both in stream_loop start and in `finally` block.
+   * **[FULL_AUDIT Bug #10 Fixed]** `on_transport_change()` guarded — rejects change and reverts combobox if `self.streaming == True`.
+   * **[FULL_AUDIT Bug #12 Fixed]** `os.devnull` handles now registered with `atexit` for proper close on process exit.
+   * **[FULL_AUDIT Bug #13 Fixed]** CLI `run_live_mode()` now enables Windows ANSI, checks terminal size (≥15 rows) before using fixed cursor row.
+   * **[FULL_AUDIT Bug #14 Fixed]** `AxisMapper.history` deque cleared in `set_calibration()` — no more stale-sample drift right after calibration.
+   * **[FULL_AUDIT Bug #17 Fixed]** `save_mapping()` returns `bool` and wraps in `try/except OSError`; GUI shows error message on failure.
+   * **[FREEZE FIX]** `refresh_device()` now spawns a background thread for `detect()` — UI never blocks during 0.6s network probe.
 3. **Official Website (`website/`):**
-   * Full 8-section responsive landing page constructed using Figma design specifications (Roboto Flex typography, `#00439C` blue theme).
-   * Sections: Sticky Glass Navbar, Hero with simulated HUD horizon tilt, Features Bento Grid with mobile scroll-snap carousel, 3-Step Setup, Interactive Tabbed App Showcase, System Requirements, Download Cards with mobile tab switcher, and FAQ Accordion.
-   * Animations: 3D card mouse tilt, button ripples, magnetic pull, typewriter hero subtitle, live gyro horizon bar, floating mockup, and staggered scroll reveals.
-   * Vercel deployment configs created: root `vercel.json` (maps `outputDirectory: "website"`) and `website/vercel.json` (security headers & caching).
-   * Direct download buttons pointed to GitHub raw stream URLs:
-     * Android APK: `https://github.com/Rushabh1697/controller-app/raw/main/Release/GyroPad-Android.apk`
-     * Windows EXE: `https://github.com/Rushabh1697/controller-app/raw/main/Release/GyroPadHost-Windows.exe`
-4. **Agentation Visual Annotation Setup (`website/`):**
-   * Installed `agentation` (-D), `react`, `react-dom`, and `esbuild` in `website/package.json`.
-   * Created entry point `website/agentation-init.jsx` mounting `<Agentation copyToClipboard={true} />` into `#agentation-root`.
-   * Bundled into standalone minified `website/agentation.js` (615 KB) using esbuild with production env define.
-   * Injected `<script defer src="agentation.js"></script>` into `website/index.html`.
-   * When opening the website (e.g. `http://localhost:8080`), a floating toolbar appears in the bottom-right corner allowing the user to click any element, type notes/feedback, and copy structured markdown with CSS selectors for AI agents.
-   * Added `.gitignore` to prevent `node_modules/` from being tracked.
-5. **GitHub Binary Download Clarification:**
-   * When opening `/blob/main/Release/GyroPad-Android.apk` in a web browser, GitHub displays *"View raw (Sorry about that, but we can't show files that are this big right now.)"* because GitHub's code viewer cannot preview 42MB binary files in the browser.
-   * Clicking **"View raw"** or the download button downloads the file normally.
-   * The website download links use GitHub's direct `/raw/` endpoints, which bypass the preview page and immediately trigger file download.
-6. **Full Bug Audit Resolved (Sept 20, 2026):**
-   * All 14 bugs from `BUGS_AND_ISSUES.md` (commit `06a6416` audit) have been fixed and committed.
-   * See bug fix details in each section above.
-
-8. **Host GUI Default, Layout & PlayStation Emulation Update (Sept 21, 2026):**
-   * **PlayStation Controller Emulation (`VDS4Gamepad`):** Implemented native Sony DualShock 4 / PS5 controller emulation as the primary default (`VID: 0x054C`, `PID: 0x05C4`). All phone buttons (`✕`, `○`, `□`, `△`, L1/R1, L2/R2, Touchpad, PS/GP) map 1:1 to PlayStation controller inputs. Games like F1 2022 and `hardwaretester.com/gamepad` recognize it natively as a Sony PlayStation controller with PlayStation button prompts.
-   * **PyInstaller ViGEmClient.dll Fix:** Bundled `vgamepad` binaries with `--collect-all vgamepad` so `ViGEmClient.dll` is included in the frozen `.exe`, resolving `Failed to load dynlib/dll ... ViGEmClient.dll`.
-   * **Transport Mode Selector in GUI:** Added `Mode:` dropdown (`USB (Cable)`, `Bluetooth (PAN)`, `Wi-Fi`) directly to the top frame so users can switch to Bluetooth without terminal arguments.
-   * **Dual Emulation Mode:** Added dropdown in GUI to select between `"PlayStation (DualShock 4 / PS5)"` (default) and `"Xbox 360"`.
-   * **Test / Wake Gamepad Button:** Added a `[Test / Wake Gamepad]` button in GUI that attaches the virtual controller and sends an initial wake-up pulse so `hardwaretester.com/gamepad` and Windows detect the controller immediately on demand.
-   * **GUI Layout Redesign:** Moved PIN entry, Start Controller, and Calibrate buttons into the top frame so High-DPI Windows display scaling cannot push them off-screen. Set window `minsize(700, 500)` and enabled `<Enter>` key in PIN field.
-   * **Auto-Detection Polling:** Silently polls every 2 seconds when disconnected so connecting a phone over USB auto-detects without manual Refresh.
-   * **Bluetooth PAN Dynamic IP Detection:** Implemented `get_bluetooth_pan_ip()` in `src/transport/wifi.py` to auto-detect the phone's gateway IP on Windows `Bluetooth Network Connection` adapter using `ipconfig`. Works across diverse Android subnet assignments (e.g. `10.18.154.11` on Android 16 vs standard `192.168.44.1`).
-   * **Windows Socket WSAEWOULDBLOCK Fix:** Replaced non-blocking `connect_ex()` with `create_connection((ip, port), timeout=0.6)` in `WifiTransport.list_devices()`, preventing Windows error 10035 from falsely reporting the device as offline.
-   * **Removed USB Debugging Logs in Bluetooth Mode:** Eradicated confusing fallback logs in `refresh_device()` that prompted users to check USB debugging while in Bluetooth PAN mode.
-   * **Startup Auto-Mode Detection:** GUI automatically detects active Bluetooth PAN network adapters on launch and auto-switches to `Bluetooth (PAN)` without requiring user interaction.
-   * **PyInstaller Windowed Mode Buffer Fix:** In `main.py`, guarded `sys.stdout.buffer` access behind `if sys.stdout is not None and hasattr(sys.stdout, "buffer")`. When packaged with `--windowed`, `sys.stdout` is `None`; previously this triggered `'NoneType' object has no attribute 'buffer'`. Windowed execution now redirects safely to `os.devnull`.
-   * **Rebuilt Windows Executable:** Rebuilt `Release/GyroPadHost-Windows.exe` and synced to `website/assets/GyroPadHost-Windows.exe`. Tested process launch and verified clean background and foreground startup.
+   * Full 8-section responsive landing page constructed.
+   * Direct download buttons pointed to GitHub raw stream URLs (verified correct `/raw/` URLs — not `/blob/`).
+   * **[FULL_AUDIT Bug #16 Fixed]** `app.js` hamburger menu event listeners wrapped in `if (toggle && navLinks)` null guard.
+   * **[FULL_AUDIT Bug #9 Fixed]** `website/assets/GyroPad-Android.apk` and `website/assets/GyroPadHost-Windows.exe` removed from git index (`git rm --cached`). `.gitignore` blocks them in future.
+4. **Repository Hygiene:**
+   * **[FULL_AUDIT Bug #20 Fixed]** `.gitignore` updated with entries for `.idea/`, `*.iml`, `sensor_dump*.txt`, `GyroPadHost.spec` (duplicate), `website/assets/*.apk`, `website/assets/*.exe`. All tracked junk files removed from git index via `git rm --cached`.
+   * **[FULL_AUDIT Bug #19 Fixed]** `handoff.md` Section 4C corrected: landscape mode uses `accel[1]` (Y axis), portrait uses `accel[0]` (X axis).
 
 ### 📌 Current State & Next Steps:
-* [x] **Git Repository Synced:** All 14 bug fixes committed to `main`. `build/`, `dist/`, and PyInstaller artifacts removed from git tracking and added to `.gitignore`.
-* [x] **Tag v1.0.0:** Tag fetched and verified from remote repository.
-* [x] **Mapping storage:** Custom button mappings now persisted at `%APPDATA%\GyroPad\mapping.json` — survives updates and packaging.
-* [x] **Rebuilt Release APK:** Built with all Flutter bug fixes applied and installed directly onto connected Vivo phone via ADB (`Release/GyroPad-Android.apk`).
-* [x] **Rebuilt Windows EXE (GUI-first):** Built with PyInstaller with default GUI launch & auto-detection (`Release/GyroPadHost-Windows.exe`).
-* [x] **Universal Setup Guide Created & Maintained:** [`SETUP_GUIDE.md`](./SETUP_GUIDE.md) covers full step-by-step setup for both PC & mobile across USB, Bluetooth PAN, and Wi-Fi modes, controller emulation selection, in-game bindings (F1 2022), and troubleshooting. Must be maintained on every change by default.
+* [x] **All FULL_AUDIT.md bugs fixed** (excluding Bug #4 agentation.js — intentionally skipped per user instruction).
+* [x] **Git Repository Synced:** All 14 previous bug fixes + all FULL_AUDIT bugs committed to `main`.
+* [x] **Mapping storage:** Custom button mappings persisted at `%APPDATA%\GyroPad\mapping.json`.
+* [x] **Rebuilt Release APK:** Built with all Flutter bug fixes applied (`Release/GyroPad-Android.apk`).
+* [x] **Rebuilt Windows EXE (GUI-first):** Built with PyInstaller (`Release/GyroPadHost-Windows.exe`).
+* [x] **Universal Setup Guide:** [`SETUP_GUIDE.md`](./SETUP_GUIDE.md) covers full step-by-step setup for both PC & mobile across USB, Bluetooth PAN, and Wi-Fi modes, controller emulation selection, in-game bindings (F1 2022), and troubleshooting. Must be maintained on every change by default.
 * [x] **Bluetooth PAN Connection Verified:** Verified raw socket connection to phone gateway (`10.18.154.11:5050`) with 0 errors.
 * [x] **ViGEmBus & PlayStation Verification:** Virtual Sony DualShock 4 / PS5 controller confirmed active (`0x054C:0x05C4`).
 * [ ] Push to GitHub (`git push origin main`) and optionally attach release assets to `v1.0.0`.
@@ -172,7 +147,7 @@ Controller-app/
 3. Python host connects via TCP:
    - USB ADB: Connects to `127.0.0.1:5050` after running `adb forward tcp:5050 tcp:5050`.
    - Wi-Fi: Connects to `<Phone_LAN_IP>:5050`.
-   - Bluetooth: Connects to `192.168.44.1:5050` with `--bluetooth`.
+   - Bluetooth PAN: Connects to the auto-detected phone gateway IP (e.g. `10.18.154.11:5050`) via `get_bluetooth_pan_ip()`. Falls back to `192.168.44.1` only if detection fails.
 4. Host immediately sends: `AUTH <PIN>\n`.
 5. Android app validates PIN:
    - If correct: responds `AUTH_OK\n` and accepts connection.
@@ -205,7 +180,11 @@ Controller-app/
 ```
 
 ### C. Input Mapping Logic
-* **Tilt Steering:** `InputMapper.process()` uses phone accelerometer `accel[0]` for horizontal steering (`st`). Left joystick overrides tilt if `abs(lx) > 0.01` or `abs(ly) > 0.01`.
+* **Tilt Steering:** `InputMapper.process()` maps phone accelerometer to horizontal steering (`st`). Axis used depends on hold orientation:
+  - **Landscape mode** (racing/steering wheel): uses `accel[1]` (Y axis) — tilting like a steering wheel rotates the phone around its Y axis.
+  - **Portrait mode** (vertical hold): uses `accel[0]` (X axis) — tilting left/right rotates around X.
+  Left joystick overrides tilt steering if `abs(lx) > 0.01` or `abs(ly) > 0.01`.
+
 * **Tilt Throttle:** Completely disabled (`th = 0.0`). Acceleration/braking is left entirely to game controls or L2/R2 buttons.
 * **Trackpad Mouse:** `touchpad_delta` is clamped to `[-60, 60]` and fed to Windows `user32.mouse_event` with strict 64-bit ctypes `argtypes` so physical input devices never freeze.
 * **Button Remapping:** Iterates dynamically over `src/ui/mapping.json` (or default mapping) mapping Flutter keys to `vgamepad` Xbox 360 buttons.

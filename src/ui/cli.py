@@ -101,6 +101,24 @@ class CLI:
         print(json.dumps(out, indent=2))
 
     def run_live_mode(self, device, profile="landscape"):
+        import sys
+        import shutil
+
+        # Bug #13: Enable ANSI escape codes on Windows cmd.exe
+        if sys.platform == "win32":
+            try:
+                import ctypes
+                kernel32 = ctypes.windll.kernel32
+                kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
+            except Exception:
+                pass
+
+        # Bug #13: Check terminal size before using fixed cursor row
+        cols, rows = shutil.get_terminal_size(fallback=(80, 24))
+        if rows < 15:
+            print("Terminal too small for live mode (need at least 15 rows). Resize and try again.")
+            return
+
         print("\033c", end="")
         self.print_header()
         print("LIVE MODE & LATENCY (Phase 3-5)")

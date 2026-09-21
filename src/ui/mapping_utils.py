@@ -55,6 +55,11 @@ def load_mapping():
     return DEFAULT_MAPPING.copy()
 
 
-def save_mapping(mapping):
-    with open(MAPPING_FILE, "w") as f:
-        json.dump(mapping, f, indent=4)
+def save_mapping(mapping) -> bool:
+    try:
+        with open(MAPPING_FILE, "w") as f:
+            json.dump(mapping, f, indent=4)
+        return True
+    except OSError as e:
+        print(f"Warning: Could not save mapping: {e}")
+        return False

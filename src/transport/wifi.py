@@ -13,11 +13,17 @@ class WifiTransport(TransportInterface):
         if not self.target_ip:
             return []
 
-        # Connect with short timeout to verify phone app socket is listening
+        # Bug #6: Use raw socket with settimeout + connect_ex to probe liveness.
+        # create_connection() completes a full TCP 3-way handshake — that floods the
+        # Flutter server with dropped connections every 2 seconds.
+        # settimeout + connect_ex does NOT do WSAEWOULDBLOCK on Windows (only non-blocking
+        # sockets without a timeout do that).
         try:
-            sock = _socket.create_connection((self.target_ip, self.port), timeout=0.6)
+            sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+            sock.settimeout(0.6)
+            result = sock.connect_ex((self.target_ip, self.port))
             sock.close()
-            return [{"serial": self.target_ip, "state": "device"}]
+            return [{"serial": self.target_ip, "state": "device" if result == 0 else "offline"}]
         except Exception:
             return [{"serial": self.target_ip, "state": "offline"}]
 
