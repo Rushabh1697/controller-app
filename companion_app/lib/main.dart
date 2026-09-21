@@ -5,6 +5,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sensors_plus/sensors_plus.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,7 +62,8 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
   StreamSubscription<GyroscopeEvent>? _gyroSub;
 
   final int _port = 5050;
-    bool _showDebug = false;
+  bool _showDebug = false;
+  double _gyroSensitivity = 1.0;
 
   double _leftStickX = 0.0;
   double _leftStickY = 0.0;
@@ -88,6 +92,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
     'Touchpad': false,
     'PS': false,
     'GP': false,
+    'Mute': false,
   };
 
   String _pin = "";
@@ -98,16 +103,126 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
     _pin = (1000 + Random().nextInt(9000)).toString();
     _startServer();
     _startSensors();
+    _initializeUpdateChecker();
+  }
+
+  Future<void> _initializeUpdateChecker() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final packageInfo = await PackageInfo.fromPlatform();
+      final currentVersion = packageInfo.version;
+
+      // 1. What's New Dialog (Option 3)
+      final lastSeenVersion = prefs.getString('last_seen_version');
+      if (lastSeenVersion != null && lastSeenVersion != currentVersion) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showWhatsNewDialog(currentVersion);
+        });
+      }
+      await prefs.setString('last_seen_version', currentVersion);
+
+      // 2. In-App Update Checker (Option 2)
+      // Pointing to the raw Github version.json as a stable host for now
+      final url = Uri.parse('https://raw.githubusercontent.com/Rushabh1697/controller-app/main/website/version.json');
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final latestVersion = data['latest_version'];
+        final releaseNotes = data['release_notes'];
+        final downloadUrl = data['download_url'];
+
+        if (_isNewerVersion(currentVersion, latestVersion)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showUpdateDialog(latestVersion, releaseNotes, downloadUrl);
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Update check failed: $e");
+    }
+  }
+
+  bool _isNewerVersion(String current, String latest) {
+    try {
+      final currParts = current.split('.').map(int.parse).toList();
+      final latestParts = latest.split('.').map(int.parse).toList();
+      for (int i = 0; i < 3; i++) {
+        if (latestParts[i] > currParts[i]) return true;
+        if (latestParts[i] < currParts[i]) return false;
+      }
+    } catch (e) {
+      return false; // Safely ignore parsing errors
+    }
+    return false;
+  }
+
+  void _showWhatsNewDialog(String version) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFFF5F5F7),
+        title: Text("What's New in v$version", style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("• Smooth Aiming: 100Hz Gyroscope polling"),
+            Text("• Sensitivity Control: New Settings Gear Menu"),
+            Text("• PS Mic Mute Button with orange LED feedback"),
+            Text("• In-App Auto Update Checker"),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Awesome!", style: TextStyle(color: Color(0xFF00439C))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showUpdateDialog(String latest, String notes, String downloadUrl) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFFF5F5F7),
+        title: Text("Update Available: v$latest", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF00439C))),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("A new version of GyroPad is ready!\n"),
+            Text(notes, style: const TextStyle(color: Colors.black87)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Later", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00439C)),
+            onPressed: () {
+              // Usually we'd use url_launcher here, but for now we just dismiss
+              // since users can check the website directly.
+              Navigator.pop(context);
+            },
+            child: const Text("Got it!", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _startSensors() {
     // ✅ Bug #11: store raw sensor values WITHOUT calling setState.
     // These are read only by _sendSampleToClient() on ping (~50 Hz), so
     // rebuilding the entire widget tree at ~100 Hz is wasteful and causes jank.
-    _accelSub = accelerometerEventStream().listen((event) {
+    _accelSub = accelerometerEventStream(samplingPeriod: const Duration(milliseconds: 10)).listen((event) {
       _lastAccel = event;  // no setState — UI doesn't need this directly
     });
-    _gyroSub = gyroscopeEventStream().listen((event) {
+    _gyroSub = gyroscopeEventStream(samplingPeriod: const Duration(milliseconds: 10)).listen((event) {
       _lastGyro = event;   // no setState — UI doesn't need this directly
     });
   }
@@ -220,7 +335,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
     Map<String, dynamic> payload = {
       'timestamp_ms': DateTime.now().millisecondsSinceEpoch,
       'accel': [_lastAccel!.x, _lastAccel!.y, _lastAccel!.z],
-      'gyro': [_lastGyro!.x, _lastGyro!.y, _lastGyro!.z],
+      'gyro': [_lastGyro!.x * _gyroSensitivity, _lastGyro!.y * _gyroSensitivity, _lastGyro!.z * _gyroSensitivity],
       'buttons': _buttons,
       'joystick_left': {'x': _leftStickX, 'y': _leftStickY},
       'joystick_right': {'x': _rightStickX, 'y': _rightStickY},
@@ -630,6 +745,31 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
     );
   }
 
+  // Mute Button (Microphone icon)
+  Widget _buildMuteButton() {
+    bool isPressed = _buttons['Mute'] ?? false;
+    return Listener(
+      onPointerDown: (_) => setState(() => _buttons['Mute'] = true),
+      onPointerUp: (_) => setState(() => _buttons['Mute'] = false),
+      onPointerCancel: (_) => setState(() => _buttons['Mute'] = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 50),
+        width: 32,
+        height: 14,
+        decoration: BoxDecoration(
+          color: isPressed ? Colors.orange.withValues(alpha: 0.9) : Colors.black87,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            if (isPressed)
+              BoxShadow(color: Colors.orange.withValues(alpha: 0.6), blurRadius: 6, spreadRadius: 1)
+            else
+              const BoxShadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1))
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDataRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -640,6 +780,58 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
           Text(value, style: const TextStyle(color: Colors.black87, fontSize: 12, fontFamily: 'monospace', fontWeight: FontWeight.bold)),
         ],
       ),
+    );
+  }
+
+  void _showSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFFF5F5F7),
+              title: const Text('Controller Settings', style: TextStyle(fontWeight: FontWeight.bold)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Gyroscope Sensitivity'),
+                  Row(
+                    children: [
+                      const Text('0.5x'),
+                      Expanded(
+                        child: Slider(
+                          value: _gyroSensitivity,
+                          min: 0.5,
+                          max: 5.0,
+                          divisions: 45,
+                          label: '${_gyroSensitivity.toStringAsFixed(1)}x',
+                          activeColor: const Color(0xFF00439C),
+                          onChanged: (val) {
+                            setDialogState(() {
+                              _gyroSensitivity = val;
+                            });
+                            setState(() {
+                              _gyroSensitivity = val;
+                            });
+                          },
+                        ),
+                      ),
+                      const Text('5.0x'),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Close', style: TextStyle(color: Color(0xFF00439C))),
+                ),
+              ],
+            );
+          }
+        );
+      },
     );
   }
 
@@ -819,10 +1011,22 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                         ),
                       ),
 
-                      // CENTER: PS Button (Bottom Center)
+                      // CENTER: PS Button (Bottom Center) and Settings
                       Padding(
                         padding: const EdgeInsets.only(bottom: 20.0),
-                        child: _buildPSButton(),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildPSButton(),
+                            const SizedBox(height: 8),
+                            _buildMuteButton(),
+                            const SizedBox(height: 8),
+                            IconButton(
+                              icon: const Icon(Icons.settings, color: Colors.grey, size: 28),
+                              onPressed: _showSettingsDialog,
+                            ),
+                          ],
+                        ),
                       ),
 
                       // RIGHT SIDE: Face Buttons and R3 Thumbstick

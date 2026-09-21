@@ -1,0 +1,5 @@
+{
+  "latest_version": "1.1.0",
+  "release_notes": "Added Gyroscope Sensitivity slider.\nAdded PlayStation Mic Mute button.\nFixed gyroscope lag with 100Hz polling.",
+  "download_url": "https://github.com/Rushabh1697/controller-app"
+}
