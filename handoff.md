@@ -2,7 +2,7 @@
 
 > **IMPORTANT INSTRUCTION FOR AI ASSISTANT:**  
 > When the user starts a new conversation and asks you to read `handoff.md`, **read this entire file thoroughly**. It contains the complete ground-truth state of the project, all architectural and design decisions, working conventions, current status, and pending tasks.  
-> **MANDATORY RULE:** Every time you make any change, bug fix, feature addition, or file modification in this repository, **you must update this `handoff.md` file by default** before finishing your response so the state stays synchronized for future sessions.
+> **MANDATORY RULE:** Every time you make any change, bug fix, feature addition, or file modification in this repository, **you must update both `handoff.md` and `SETUP_GUIDE.md` by default** before finishing your response so the state and user guides stay synchronized for future sessions.
 
 ---
 
@@ -79,15 +79,32 @@
    * All 14 bugs from `BUGS_AND_ISSUES.md` (commit `06a6416` audit) have been fixed and committed.
    * See bug fix details in each section above.
 
+8. **Host GUI Default, Layout & PlayStation Emulation Update (Sept 21, 2026):**
+   * **PlayStation Controller Emulation (`VDS4Gamepad`):** Implemented native Sony DualShock 4 / PS5 controller emulation as the primary default (`VID: 0x054C`, `PID: 0x05C4`). All phone buttons (`✕`, `○`, `□`, `△`, L1/R1, L2/R2, Touchpad, PS/GP) map 1:1 to PlayStation controller inputs. Games like F1 2022 and `hardwaretester.com/gamepad` recognize it natively as a Sony PlayStation controller with PlayStation button prompts.
+   * **PyInstaller ViGEmClient.dll Fix:** Bundled `vgamepad` binaries with `--collect-all vgamepad` so `ViGEmClient.dll` is included in the frozen `.exe`, resolving `Failed to load dynlib/dll ... ViGEmClient.dll`.
+   * **Transport Mode Selector in GUI:** Added `Mode:` dropdown (`USB (Cable)`, `Bluetooth (PAN)`, `Wi-Fi`) directly to the top frame so users can switch to Bluetooth without terminal arguments.
+   * **Dual Emulation Mode:** Added dropdown in GUI to select between `"PlayStation (DualShock 4 / PS5)"` (default) and `"Xbox 360"`.
+   * **Test / Wake Gamepad Button:** Added a `[Test / Wake Gamepad]` button in GUI that attaches the virtual controller and sends an initial wake-up pulse so `hardwaretester.com/gamepad` and Windows detect the controller immediately on demand.
+   * **GUI Layout Redesign:** Moved PIN entry, Start Controller, and Calibrate buttons into the top frame so High-DPI Windows display scaling cannot push them off-screen. Set window `minsize(700, 500)` and enabled `<Enter>` key in PIN field.
+   * **Auto-Detection Polling:** Silently polls every 2 seconds when disconnected so connecting a phone over USB auto-detects without manual Refresh.
+   * **Bluetooth PAN Dynamic IP Detection:** Implemented `get_bluetooth_pan_ip()` in `src/transport/wifi.py` to auto-detect the phone's gateway IP on Windows `Bluetooth Network Connection` adapter using `ipconfig`. Works across diverse Android subnet assignments (e.g. `10.18.154.11` on Android 16 vs standard `192.168.44.1`).
+   * **Windows Socket WSAEWOULDBLOCK Fix:** Replaced non-blocking `connect_ex()` with `create_connection((ip, port), timeout=0.6)` in `WifiTransport.list_devices()`, preventing Windows error 10035 from falsely reporting the device as offline.
+   * **Removed USB Debugging Logs in Bluetooth Mode:** Eradicated confusing fallback logs in `refresh_device()` that prompted users to check USB debugging while in Bluetooth PAN mode.
+   * **Startup Auto-Mode Detection:** GUI automatically detects active Bluetooth PAN network adapters on launch and auto-switches to `Bluetooth (PAN)` without requiring user interaction.
+   * **Rebuilt Windows Executable:** Rebuilt `Release/GyroPadHost-Windows.exe` and synced to `website/assets/GyroPadHost-Windows.exe`.
+
 ### 📌 Current State & Next Steps:
 * [x] **Git Repository Synced:** All 14 bug fixes committed to `main`. `build/`, `dist/`, and PyInstaller artifacts removed from git tracking and added to `.gitignore`.
 * [x] **Tag v1.0.0:** Tag fetched and verified from remote repository.
 * [x] **Mapping storage:** Custom button mappings now persisted at `%APPDATA%\GyroPad\mapping.json` — survives updates and packaging.
 * [x] **Rebuilt Release APK:** Built with all Flutter bug fixes applied and installed directly onto connected Vivo phone via ADB (`Release/GyroPad-Android.apk`).
-* [x] **Rebuilt Windows EXE:** Built with PyInstaller with graceful ViGEmBus fallback (`Release/GyroPadHost-Windows.exe`).
+* [x] **Rebuilt Windows EXE (GUI-first):** Built with PyInstaller with default GUI launch & auto-detection (`Release/GyroPadHost-Windows.exe`).
+* [x] **Universal Setup Guide Created & Maintained:** [`SETUP_GUIDE.md`](./SETUP_GUIDE.md) covers full step-by-step setup for both PC & mobile across USB, Bluetooth PAN, and Wi-Fi modes, controller emulation selection, in-game bindings (F1 2022), and troubleshooting. Must be maintained on every change by default.
+* [x] **Bluetooth PAN Connection Verified:** Verified raw socket connection to phone gateway (`10.18.154.11:5050`) with 0 errors.
+* [x] **ViGEmBus & PlayStation Verification:** Virtual Sony DualShock 4 / PS5 controller confirmed active (`0x054C:0x05C4`).
 * [ ] Push to GitHub (`git push origin main`) and optionally attach release assets to `v1.0.0`.
 * [ ] Deploy to Vercel by importing `Rushabh1697/controller-app` on [vercel.com](https://vercel.com). Root `vercel.json` will automatically publish `website/`.
-* [ ] Complete end-to-end streaming test with phone unlocked and PIN entered.
+* [ ] Run desktop host GUI, enter 4-digit PIN, and test steering & triggers live in F1 2022.
 
 ---
 
@@ -140,6 +157,7 @@ Controller-app/
 ├── vercel.json                     # Root Vercel config mapping output to website/
 ├── .gitignore                      # Root gitignore
 ├── README.md                       # Public GitHub README
+├── SETUP_GUIDE.md                  # Comprehensive step-by-step PC & mobile setup guide
 └── handoff.md                      # This universal project state & continuation guide
 ```
 
@@ -262,3 +280,4 @@ When navigating to `https://github.com/Rushabh1697/controller-app/blob/main/Rele
 ## 7. Instructions for Future Assistant Sessions
 * **When reading this file:** Treat this file as the authoritative record of architecture, decisions, and progress.
 * **When making changes:** Always update section **2 (Current Status & Where We Left Off)** and any relevant implementation sections whenever new code, features, or fixes are implemented.
+* **Synchronize Setup Guide:** Always update [`SETUP_GUIDE.md`](./SETUP_GUIDE.md) whenever installation steps, flags, UI controls, or driver procedures change, so user-facing documentation stays 100% accurate.

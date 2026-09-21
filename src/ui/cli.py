@@ -145,7 +145,7 @@ class CLI:
             # Phase 7: Virtual Controller (vgamepad)
             try:
                 import vgamepad as vg
-                gamepad = vg.VX360Gamepad()
+                gamepad = vg.VDS4Gamepad()
                 vg_available = True
             except (ImportError, Exception):
                 gamepad = None
@@ -196,7 +196,7 @@ class CLI:
             if not vg_available:
                 print("⚠ vgamepad not installed! Run 'pip install vgamepad' to enable Windows controller emulation.")
             else:
-                print("🎮 Virtual Xbox 360 Controller Active!")
+                print("🎮 Virtual PlayStation DualShock 4 / PS5 Controller Active!")
             
             s.setblocking(False)
             
@@ -292,21 +292,66 @@ class CLI:
                                     # Map Left and Right Joysticks
                                     gamepad.left_joystick_float(x_value_float=final_lx, y_value_float=final_ly)
                                     gamepad.right_joystick_float(x_value_float=rx, y_value_float=ry)
-                                    lt_val = 0.0
-                                    rt_val = 0.0
-                                    for f_btn, x_btn in self.mapping.items():
-                                        is_pressed = bool(buttons.get(f_btn))
-                                        if x_btn == "LEFT_TRIGGER":
-                                            if is_pressed: lt_val = 1.0
-                                        elif x_btn == "RIGHT_TRIGGER":
-                                            if is_pressed: rt_val = 1.0
-                                        elif x_btn != "NONE" and hasattr(vg.XUSB_BUTTON, x_btn):
-                                            btn_val = getattr(vg.XUSB_BUTTON, x_btn)
-                                            if is_pressed: gamepad.press_button(button=btn_val)
-                                            else: gamepad.release_button(button=btn_val)
+                                    
+                                    # Analog Triggers (L2 / R2)
+                                    lt_pressed = bool(buttons.get('L2'))
+                                    rt_pressed = bool(buttons.get('R2'))
+                                    gamepad.left_trigger_float(value_float=1.0 if lt_pressed else 0.0)
+                                    gamepad.right_trigger_float(value_float=1.0 if rt_pressed else 0.0)
+                                    
+                                    # Face and Shoulder buttons
+                                    ds4_map = {
+                                        'Cross': vg.DS4_BUTTONS.DS4_BUTTON_CROSS,
+                                        'Circle': vg.DS4_BUTTONS.DS4_BUTTON_CIRCLE,
+                                        'Square': vg.DS4_BUTTONS.DS4_BUTTON_SQUARE,
+                                        'Triangle': vg.DS4_BUTTONS.DS4_BUTTON_TRIANGLE,
+                                        'L1': vg.DS4_BUTTONS.DS4_BUTTON_SHOULDER_LEFT,
+                                        'R1': vg.DS4_BUTTONS.DS4_BUTTON_SHOULDER_RIGHT,
+                                        'L3': vg.DS4_BUTTONS.DS4_BUTTON_THUMB_LEFT,
+                                        'R3': vg.DS4_BUTTONS.DS4_BUTTON_THUMB_RIGHT,
+                                        'Options': vg.DS4_BUTTONS.DS4_BUTTON_OPTIONS,
+                                        'Share': vg.DS4_BUTTONS.DS4_BUTTON_SHARE,
+                                    }
+                                    for f_btn, d_btn in ds4_map.items():
+                                        if buttons.get(f_btn):
+                                            gamepad.press_button(button=d_btn)
+                                        else:
+                                            gamepad.release_button(button=d_btn)
                                             
-                                    gamepad.left_trigger_float(value_float=lt_val)
-                                    gamepad.right_trigger_float(value_float=rt_val)
+                                    if buttons.get('Touchpad'):
+                                        gamepad.press_special_button(special_button=vg.DS4_SPECIAL_BUTTONS.DS4_SPECIAL_BUTTON_TOUCHPAD)
+                                    else:
+                                        gamepad.release_special_button(special_button=vg.DS4_SPECIAL_BUTTONS.DS4_SPECIAL_BUTTON_TOUCHPAD)
+                                        
+                                    if buttons.get('PS') or buttons.get('GP'):
+                                        gamepad.press_special_button(special_button=vg.DS4_SPECIAL_BUTTONS.DS4_SPECIAL_BUTTON_PS)
+                                    else:
+                                        gamepad.release_special_button(special_button=vg.DS4_SPECIAL_BUTTONS.DS4_SPECIAL_BUTTON_PS)
+                                        
+                                    # D-Pad
+                                    u = bool(buttons.get('DpadUp'))
+                                    d = bool(buttons.get('DpadDown'))
+                                    l = bool(buttons.get('DpadLeft'))
+                                    r = bool(buttons.get('DpadRight'))
+                                    if u and r:
+                                        gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_NORTHEAST)
+                                    elif u and l:
+                                        gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_NORTHWEST)
+                                    elif d and r:
+                                        gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_SOUTHEAST)
+                                    elif d and l:
+                                        gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_SOUTHWEST)
+                                    elif u:
+                                        gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_NORTH)
+                                    elif d:
+                                        gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_SOUTH)
+                                    elif l:
+                                        gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_WEST)
+                                    elif r:
+                                        gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_EAST)
+                                    else:
+                                        gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_NONE)
+                                        
                                     gamepad.update()
                                 
                                 # Visual bar helper for axes [-1.0, 1.0]

@@ -10,10 +10,11 @@ GyroPad turns your Android phone into a wireless PS5-style controller for your W
 
 [![Download APK](https://img.shields.io/badge/⬇%20Android%20APK-Download-3DDC84?style=for-the-badge&logo=android&logoColor=white)](./Release/GyroPad-Android.apk)
 [![Download EXE](https://img.shields.io/badge/⬇%20Windows%20EXE-Download-0078D4?style=for-the-badge&logo=windows&logoColor=white)](./Release/GyroPadHost-Windows.exe)
+[![Setup Guide](https://img.shields.io/badge/📖%20Setup%20Guide-Read-FF5722?style=for-the-badge)](./SETUP_GUIDE.md)
 [![Website](https://img.shields.io/badge/🌐%20Website-Visit-00439C?style=for-the-badge)](https://rushabh1697.github.io/controller-app/)
 [![GitHub Stars](https://img.shields.io/github/stars/Rushabh1697/controller-app?style=for-the-badge&color=FFD700)](https://github.com/Rushabh1697/controller-app/stargazers)
 
-> No account needed to download. Just click the buttons above.
+> No account needed to download. Just click the buttons above. Full step-by-step instructions in [SETUP_GUIDE.md](./SETUP_GUIDE.md).
 
 </div>
 
@@ -23,17 +24,17 @@ GyroPad turns your Android phone into a wireless PS5-style controller for your W
 
 ```
 📱 Your Phone                        💻 Your PC
-┌─────────────────────┐             ┌──────────────────────────┐
-│   GyroPad App       │             │   GyroPadHost.exe        │
-│                     │             │                          │
-│  [gyroscope]  ──────┼─ Wi-Fi  ───▶│  Virtual Xbox Controller │
-│  [touchscreen]──────┼─ Bluetooth─▶│                          │
-│  [buttons]    ──────┼─ USB    ───▶│  Windows sees a real     │
-│                     │             │  gamepad — works with    │
-└─────────────────────┘             │  any game automatically  │
-                                    └────────────┬─────────────┘
-                                                 │
-                                          🎮 Your Game
+┌─────────────────────┐             ┌──────────────────────────────┐
+│   GyroPad App       │             │   GyroPadHost.exe            │
+│                     │             │                              │
+│  [gyroscope]  ──────┼─ USB (Cable)▶│  Virtual PlayStation Controller
+│  [touchscreen]──────┼─ Bluetooth ─▶│  (DualShock 4 / PS5 default, │
+│  [buttons]    ──────┼─ Wi-Fi   ──▶│   or optional Xbox 360)     │
+│                     │             │  Windows & games see a real  │
+└─────────────────────┘             │  gamepad automatically       │
+                                    └──────────────┬───────────────┘
+                                                   │
+                                            🎮 Your Game
 ```
 
 ---

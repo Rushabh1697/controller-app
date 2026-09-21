@@ -13,16 +13,13 @@ class WifiTransport(TransportInterface):
         if not self.target_ip:
             return []
 
-        # ✅ Bug #7: use connect_ex (non-blocking probe) instead of create_connection
-        # which completes a full handshake and then immediately drops the socket,
-        # flooding the Flutter server with half-connections.
-        sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
-        sock.settimeout(1.0)
-        result = sock.connect_ex((self.target_ip, self.port))
-        sock.close()
-        if result == 0:
+        # Connect with short timeout to verify phone app socket is listening
+        try:
+            sock = _socket.create_connection((self.target_ip, self.port), timeout=0.6)
+            sock.close()
             return [{"serial": self.target_ip, "state": "device"}]
-        return [{"serial": self.target_ip, "state": "offline"}]
+        except Exception:
+            return [{"serial": self.target_ip, "state": "offline"}]
 
     def get_device_info(self, device_id: str) -> Dict[str, str]:
         return {
@@ -45,3 +42,28 @@ class WifiTransport(TransportInterface):
 
     def close_stream(self, device_id: str, local_port: int):
         pass
+
+
+def get_bluetooth_pan_ip() -> str:
+    """Auto-detects the phone's gateway IP on Windows Bluetooth Network Connection using ipconfig."""
+    try:
+        import subprocess
+        import re
+        out = subprocess.check_output(['ipconfig'], text=True, errors='ignore')
+        lines = out.split('\n')
+        in_bt = False
+        for line in lines:
+            line_str = line.strip()
+            if 'Bluetooth' in line and 'adapter' in line.lower():
+                in_bt = True
+                continue
+            if in_bt:
+                if 'adapter' in line.lower() and ':' in line:
+                    break
+                if 'Default Gateway' in line:
+                    match = re.search(r'([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})', line)
+                    if match:
+                        return match.group(1)
+    except Exception:
+        pass
+    return "192.168.44.1"
