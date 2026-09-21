@@ -232,3 +232,7 @@ In the GyroPad Desktop Host, the **`Emulation:`** dropdown allows switching betw
 
 *Last Updated: September 21, 2026*  
 *Repository: [Rushabh1697/controller-app](https://github.com/Rushabh1697/controller-app)*
+
+### Q: Why do I see TWO controllers in Hardware Tester, and one does not work?
+* **Answer:** The app uses a Windows driver (ViGEmBus) to spawn virtual gamepads. If an older buggy version of the app crashed or was force-closed without shutting down properly, Windows kept the Ghost controller plugged in. The easiest fix is to **Restart your PC** to clear the device memory.
+

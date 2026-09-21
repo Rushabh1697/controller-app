@@ -297,9 +297,9 @@ class CLI:
                                 
                                 # Process On-Screen Joysticks
                                 lx = joystick_left['x']
-                                ly = -joystick_left['y'] # Y is usually inverted on screen vs gamepad
+                                ly = joystick_left['y'] # Removed inversion
                                 rx = joystick_right['x']
-                                ry = -joystick_right['y']
+                                ry = joystick_right['y']
                                 
                                 # If the on-screen left joystick is being used, override the gyro
                                 final_lx = lx if (abs(lx) > 0.01 or abs(ly) > 0.01) else st

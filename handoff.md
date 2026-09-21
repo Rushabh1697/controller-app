@@ -261,3 +261,24 @@ When navigating to `https://github.com/Rushabh1697/controller-app/blob/main/Rele
 * **When reading this file:** Treat this file as the authoritative record of architecture, decisions, and progress.
 * **When making changes:** Always update section **2 (Current Status & Where We Left Off)** and any relevant implementation sections whenever new code, features, or fixes are implemented.
 * **Synchronize Setup Guide:** Always update [`SETUP_GUIDE.md`](./SETUP_GUIDE.md) whenever installation steps, flags, UI controls, or driver procedures change, so user-facing documentation stays 100% accurate.
+
+---
+
+## 8. Planned Future Features (Agreed Upon)
+
+1. **Auto-Reconnect on Drop**: Implement socket retry logic to silently reconnect if the connection drops, without breaking the game session.
+2. **Connection History / Last Used IP**: Save the last successfully connected IP to a tiny config file to skip manual IP entry in Wi-Fi mode.
+3. **Battery % Notification**: Send battery telemetry from the phone and trigger native Windows toast notifications (at 20%, 10%, 5%) so the user knows to charge.
+4. **QR Code Pairing**: Display a QR code on the PC that the phone can scan to instantly pair (auto-fills IP and PIN).
+5. **Vibration Feedback Toggle**: Add an ON/OFF switch in the Android app settings to disable rumble for battery saving.
+6. **Multiple Controller Skin Themes**: Provide different visual layouts (PS5, Xbox, Switch) and allow custom image uploads for the UI.
+7. **Per-Game Profile Auto-Switching**: Background Windows monitor to automatically swap control profiles depending on the focused game window.
+8. **Profile Import / Export**: Save and load .json profiles for sharing game configurations.
+
+
+## 9. Recent Fixes (September 21, 2026)
+- **UI Freeze Fix:** Moved 
+efresh_device() network probing to a background 	hreading.Thread so the main Tkinter thread no longer blocks for 0.6s every 2s.
+- **Ghost Controller Fix:** Ensured _test_pad.reset() is called before destruction to cleanly unregister the device from ViGEmBus.
+- **Joystick L3/R3 Inversion Fix:** Removed the manual - sign from the Y-axis processing in gui.py and cli.py to match Flutter coordinate space.
+- **Package Name Fix:** Properly refactored the Android Kotlin folder structure from com/example/companion_app to com/gyropad/app to prevent instant ClassNotFoundException crashes on launch.

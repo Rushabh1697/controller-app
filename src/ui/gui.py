@@ -506,9 +506,9 @@ class ControllerGUI:
                                     th = mapped["throttle"]
                                     
                                     lx = joystick_left['x']
-                                    ly = -joystick_left['y']
+                                    ly = joystick_left['y']
                                     rx = joystick_right['x']
-                                    ry = -joystick_right['y']
+                                    ry = joystick_right['y']
                                     
                                     final_lx = lx if (abs(lx) > 0.01 or abs(ly) > 0.01) else st
                                     final_ly = ly if (abs(lx) > 0.01 or abs(ly) > 0.01) else th
