@@ -2,9 +2,17 @@ import sys
 import os
 import io
 
-# Fix Windows console encoding for box characters
+# Fix Windows console encoding for box characters (safe for --windowed mode)
 if sys.platform == "win32":
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    if sys.stdout is not None and hasattr(sys.stdout, "buffer"):
+        try:
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+        except Exception:
+            pass
+    elif sys.stdout is None:
+        # Running in PyInstaller windowed mode (no console attached)
+        sys.stdout = open(os.devnull, 'w', encoding='utf-8')
+        sys.stderr = open(os.devnull, 'w', encoding='utf-8')
 
 # Add src to Python path so imports work
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))

@@ -201,6 +201,9 @@ In the GyroPad Desktop Host, the **`Emulation:`** dropdown allows switching betw
 
 ## 9. Troubleshooting & FAQ
 
+### Q: "Failed to execute script 'main': 'NoneType' object has no attribute 'buffer'"
+* **Solution:** This occurred in PyInstaller windowed mode (no console window) when accessing `sys.stdout.buffer`. This is now resolved in the latest `Release/GyroPadHost-Windows.exe` build with safe windowed stream redirection.
+
 ### Q: "Failed to load dynlib/dll ViGEmClient.dll"
 * **Solution:** Use the latest build of `GyroPadHost-Windows.exe` from the `Release/` directory. All required C++ driver DLLs are bundled directly into the executable.
 

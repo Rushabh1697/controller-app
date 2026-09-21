@@ -91,7 +91,8 @@
    * **Windows Socket WSAEWOULDBLOCK Fix:** Replaced non-blocking `connect_ex()` with `create_connection((ip, port), timeout=0.6)` in `WifiTransport.list_devices()`, preventing Windows error 10035 from falsely reporting the device as offline.
    * **Removed USB Debugging Logs in Bluetooth Mode:** Eradicated confusing fallback logs in `refresh_device()` that prompted users to check USB debugging while in Bluetooth PAN mode.
    * **Startup Auto-Mode Detection:** GUI automatically detects active Bluetooth PAN network adapters on launch and auto-switches to `Bluetooth (PAN)` without requiring user interaction.
-   * **Rebuilt Windows Executable:** Rebuilt `Release/GyroPadHost-Windows.exe` and synced to `website/assets/GyroPadHost-Windows.exe`.
+   * **PyInstaller Windowed Mode Buffer Fix:** In `main.py`, guarded `sys.stdout.buffer` access behind `if sys.stdout is not None and hasattr(sys.stdout, "buffer")`. When packaged with `--windowed`, `sys.stdout` is `None`; previously this triggered `'NoneType' object has no attribute 'buffer'`. Windowed execution now redirects safely to `os.devnull`.
+   * **Rebuilt Windows Executable:** Rebuilt `Release/GyroPadHost-Windows.exe` and synced to `website/assets/GyroPadHost-Windows.exe`. Tested process launch and verified clean background and foreground startup.
 
 ### 📌 Current State & Next Steps:
 * [x] **Git Repository Synced:** All 14 bug fixes committed to `main`. `build/`, `dist/`, and PyInstaller artifacts removed from git tracking and added to `.gitignore`.
