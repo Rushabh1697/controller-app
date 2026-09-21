@@ -174,15 +174,17 @@ Before launching a game, verify your controller inputs live:
    * In F1 2022: **Game Options → Settings → Controls, Vibration & Force Feedback**.
    * You will see the active controller listed with native PlayStation prompt icons.
 3. **Recommended F1 2022 Bindings:**
-   * **Steering:** Left Stick X (Controlled by tilting phone).
+   * **Steering:** Left Stick X (Controlled by tilting phone). *Note: Steer lag is eliminated via ultra-fast 100Hz hardware polling.*
    * **Accelerate:** R2 (Right Trigger on phone).
    * **Brake / Reverse:** L2 (Left Trigger on phone).
    * **Shift Up (Manual):** Cross (`✕`).
    * **Shift Down (Manual):** Square (`□`).
    * **DRS / Overtake:** Triangle (`△`) or L1.
    * **Pause:** Options button.
-   * **Flashback / Replay:** Share button.
-4. **Calibration Tip:**
+   * **Voice Chat Mute:** New pill-shaped **Mute** button (below the GP button).
+4. **Customizing Sensitivity (New in v1.1.0):**
+   * Tap the new **Settings (gear) icon** below the Mute button to adjust Gyroscope Sensitivity dynamically (0.5x to 5.0x) without disconnecting.
+5. **Calibration Tip:**
    * Hold your phone in your natural resting grip and click **"Calibrate Neutral"** in the GyroPad PC window to set zero-tilt center.
    * In F1 2022 calibration, set **Steering Deadzone** to `0%` or `1%` (GyroPad handles deadzone filtering natively).
 

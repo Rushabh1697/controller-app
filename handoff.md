@@ -276,9 +276,13 @@ When navigating to `https://github.com/Rushabh1697/controller-app/blob/main/Rele
 8. **Profile Import / Export**: Save and load .json profiles for sharing game configurations.
 
 
-## 9. Recent Fixes (September 21, 2026)
-- **UI Freeze Fix:** Moved 
-efresh_device() network probing to a background 	hreading.Thread so the main Tkinter thread no longer blocks for 0.6s every 2s.
-- **Ghost Controller Fix:** Ensured _test_pad.reset() is called before destruction to cleanly unregister the device from ViGEmBus.
-- **Joystick L3/R3 Inversion Fix:** Removed the manual - sign from the Y-axis processing in gui.py and cli.py to match Flutter coordinate space.
-- **Package Name Fix:** Properly refactored the Android Kotlin folder structure from com/example/companion_app to com/gyropad/app to prevent instant ClassNotFoundException crashes on launch.
+## 9. Recent Fixes & Additions (September 21, 2026)
+- **Gyroscope Lag Fix:** Increased Flutter `gyroscopeEventStream` and `accelerometerEventStream` polling to 100Hz (10ms interval) for ultra-low latency steering.
+- **Sensitivity & Settings Menu:** Added a new Settings (gear) icon below the GP button that opens a modal to dynamically adjust Gyroscope Sensitivity (0.5x - 5.0x multiplier).
+- **PlayStation Mic Mute Button:** Added a physical-style pill button for microphone muting directly below the GP button, featuring an orange LED indicator state, mapped over TCP.
+- **In-App Auto Updater:** Added `version.json` network checking against the main repository. Both a "What's New" welcome dialog and an "Update Available" notification are now active in the Flutter app using `package_info_plus` and `shared_preferences`.
+- **Website Release Notes:** Designed a card-based styled "Release Notes" section in `website/index.html` to display the changelog.
+- **UI Freeze Fix:** Moved `refresh_device()` network probing to a background `threading.Thread` so the main Tkinter thread no longer blocks for 0.6s every 2s.
+- **Ghost Controller Fix:** Ensured `_test_pad.reset()` is called before destruction to cleanly unregister the device from ViGEmBus.
+- **Joystick L3/R3 Inversion Fix:** Removed the manual `-` sign from the Y-axis processing in `gui.py` and `cli.py` to match Flutter coordinate space.
+- **Package Name Fix:** Properly refactored the Android Kotlin folder structure from `com/example/companion_app` to `com/gyropad/app` to prevent instant `ClassNotFoundException` crashes on launch.
