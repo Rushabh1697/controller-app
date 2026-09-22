@@ -264,21 +264,19 @@ When navigating to `https://github.com/Rushabh1697/controller-app/blob/main/Rele
 
 ---
 
-## 8. Planned Future Features (Agreed Upon)
+## 8. Planned Future Features
 
-1. **Battery % Notification**: Send battery telemetry from the phone and trigger native Windows toast notifications (at 20%, 10%, 5%) so the user knows to charge.
-2. **QR Code Pairing**: Display a QR code on the PC that the phone can scan to instantly pair (auto-fills IP and PIN).
-3. **Vibration Feedback Toggle**: Add an ON/OFF switch in the Android app settings to disable rumble for battery saving.
-4. **Multiple Controller Skin Themes**: Provide different visual layouts (PS5, Xbox, Switch) and allow custom image uploads for the UI.
-5. **Per-Game Profile Auto-Switching**: Background Windows monitor to automatically swap control profiles depending on the focused game window.
-6. **Profile Import / Export**: Save and load .json profiles for sharing game configurations.
+1. **Multiple Controller Skin Themes**: Provide different visual layouts (PS5, Xbox, Switch) and allow custom image uploads for the UI.
+2. **Per-Game Profile Auto-Switching**: Background Windows monitor to automatically swap control profiles depending on the focused game window.
+3. **Profile Import / Export**: Save and load .json profiles for sharing game configurations.
 
-
-## 9. Recent Fixes & Additions (September 22, 2026)
-- **Touchpad Tap Reliability Fix**: Upgraded the Touchpad hit detection in the Flutter app to use a raw pointer `Listener`. Previously, slight finger movements on the glass would register as a pan and cancel the tap event. It now reliably triggers the PS4 Touchpad Click anywhere on the button.
-- **Auto-Reconnect on Drop**: Implemented a resilient outer `while` loop in `gui.py`'s `stream_loop()`. If the network socket drops or times out mid-game, it now gracefully pauses and silently retries the connection until it recovers, rather than permanently stopping the stream.
-- **Connection History (Last Used IP)**: Added `config.json` utilities. The PC host now automatically saves the last successfully used Wi-Fi IP and pre-fills the input dialog on the next launch, removing the need to type it every time.
-- **True Deadzone/Lag Fix:** Found and fixed the real cause of the perceived "deadzone". While the deadzone was indeed set to 0.0, the Python host (`gui.py` and `cli.py`) was still pinging the network at 20Hz (`0.05` intervals) while the Flutter app was generating data at 100Hz. This 20Hz bottleneck combined with `smoothing_window=4` created a ~200ms input lag that felt exactly like a deadzone. Increased host polling to 100Hz (`0.01` intervals) and reduced `smoothing_window` to `1` (0 lag) to completely eliminate the physical delay.
-- **Bluetooth PAN IP Detection Fix:** Improved `ipconfig` parsing in `src/transport/wifi.py` to correctly detect the phone's Bluetooth PAN IP. Previously, it failed when Windows omitted the `Default Gateway` for the Bluetooth adapter (which happens if Wi-Fi is simultaneously connected). Now it accurately derives the gateway by checking the Bluetooth adapter's IPv4 address and targeting the `.1` subnet root.
+## 9. Recent Fixes & Additions (v1.2.0 Release - September 22, 2026)
+- **QR Code Pairing (PC Side Completed)**: Added a "📱 QR Pair" button to the PC app that generates a QR code and starts a temporary pairing server (`port 5051`).
+- **Battery % Notification (PC Side Completed)**: The PC now parses incoming telemetry for a `battery` key and triggers native Windows Toast Notifications when it drops below 20%, 10%, and 5%.
+- **Vibration/Haptic Feedback (PC Side Completed)**: Wired into `vgamepad`'s native rumble callbacks. PC captures motor intensity and forwards a TCP `VIB:{duration}\n` packet to the phone.
 - **Anti-Deadzone (Game Override):** Added an anti-deadzone algorithm to `mapper.py` and a UI slider to instantly boost small steering movements past the 15-20% deadzone baked into most PC games, completely eliminating the "deadzone feeling".
 - **Hold & Ramp Analog Triggers:** Added time-based ramping logic for L2 and R2 in `gui.py`. Added a Settings toggle in the Flutter app to simulate smooth analog trigger pulls over 0.5 seconds instead of instant digital 100% presses.
+- **Touchpad Tap Reliability Fix**: Upgraded the Touchpad hit detection in the Flutter app to use a raw pointer `Listener`. 
+- **Auto-Reconnect on Drop**: Implemented a resilient outer `while` loop in `gui.py`'s `stream_loop()`.
+- **Connection History (Last Used IP)**: The PC host now automatically saves the last successfully used Wi-Fi IP in `config.json`.
+- **Bluetooth PAN IP & "Disconnected" UX Fixes:** Improved `ipconfig` parsing and added explicit Windows Settings instructions for PAN tethering.

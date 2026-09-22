@@ -136,12 +136,13 @@ Use this mode if your phone and PC are connected to the same home Wi-Fi router.
 
 1. **Ensure Same Network:**
    * Connect both your PC and phone to the same Wi-Fi router.
-2. **Find Phone IP Address:**
-   * On your phone, go to **Settings → Wi-Fi → tap connected network name → IP address** (e.g. `192.168.1.55`).
-3. **Start Controller:**
-   * In GyroPad PC host, switch `Mode:` to **`Wi-Fi`**.
-   * A prompt will ask for your phone's IP address — enter it (e.g. `192.168.1.55`).
-   * Enter the **4-digit PIN** from your phone screen and click **Start Controller**.
+2. **📱 QR Code Pairing (New in v1.2.0 - Easiest Method):**
+   * In the GyroPad PC host, switch `Mode:` to **`Wi-Fi`**.
+   * Click the new **`📱 QR Pair`** button to display a QR code on your PC screen.
+   * In the GyroPad Android app, tap the **QR Scanner icon** (next to Settings) and scan your PC screen. It will automatically connect without needing to type IP addresses or PINs!
+3. **Manual IP Pairing (Alternative):**
+   * If your camera is broken, find your phone's IP in **Settings → Wi-Fi**.
+   * Enter the IP into the PC host, enter the **4-digit PIN** from the phone screen, and click **Start Controller**.
 
 ---
 
@@ -186,7 +187,13 @@ Before launching a game, verify your controller inputs live:
    * Tap the new **Settings (gear) icon** below the Mute button to adjust Gyroscope Sensitivity dynamically (0.5x to 5.0x) without disconnecting.
 5. **Calibration Tip:**
    * Hold your phone in your natural resting grip and click **"Calibrate Neutral"** in the GyroPad PC window to set zero-tilt center.
-   * In F1 2022 calibration, set **Steering Deadzone** to `0%` or `1%` (GyroPad handles deadzone filtering natively).
+   * In F1 2022 calibration, set **Steering Deadzone** to `0%` or `1%`.
+6. **Defeating the Game's Deadzone (New in v1.2.0):**
+   * If you still feel a slight deadzone when turning, it's because PC games completely ignore the first 15-20% of joystick input!
+   * Adjust the new **"Anti-Deadzone (Game Override)"** slider in the GyroPad PC UI to `0.20` or higher. This will instantly boost your physical tilt past the game's hidden deadzone, giving you zero lag!
+7. **Hold & Ramp Analog Triggers (New in v1.2.0):**
+   * Tap the **Settings (gear) icon** on your phone and enable **"Hold & Ramp Triggers"**. 
+   * When enabled, pressing L2 or R2 will smoothly simulate an analog trigger being pressed from 0% to 100% over half a second. Perfect for smooth throttle control in racing games!
 
 ---
 
@@ -232,7 +239,7 @@ In the GyroPad Desktop Host, the **`Emulation:`** dropdown allows switching betw
 
 ---
 
-*Last Updated: September 21, 2026*  
+*Last Updated: September 22, 2026*  
 *Repository: [Rushabh1697/controller-app](https://github.com/Rushabh1697/controller-app)*
 
 ### Q: Why do I see TWO controllers in Hardware Tester, and one does not work?
