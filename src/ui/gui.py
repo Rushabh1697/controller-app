@@ -20,6 +20,8 @@ class ControllerGUI:
         self.device = None
         self.streaming = False
         self.thread = None
+        self.l2_pressed_time = 0.0
+        self.r2_pressed_time = 0.0
         self.queue = queue.Queue()
         self.mapping = load_mapping()
         self._test_pad = None
@@ -55,7 +57,7 @@ class ControllerGUI:
                 init_mode = "Wi-Fi"
         else:
             bt_ip = get_bluetooth_pan_ip()
-            if bt_ip != "192.168.44.1":
+            if bt_ip != "DISCONNECTED":
                 self.service.transport = WifiTransport(bt_ip, transport_name="Bluetooth")
                 init_mode = "Bluetooth (PAN)"
 
@@ -78,6 +80,9 @@ class ControllerGUI:
         
         self.btn_start = ttk.Button(f_controls, text="Start Controller", command=self.toggle_stream, state=tk.DISABLED)
         self.btn_start.pack(side=tk.LEFT, padx=5)
+        
+        self.btn_qr = ttk.Button(f_controls, text="📱 QR Pair", command=self.show_qr)
+        self.btn_qr.pack(side=tk.LEFT, padx=5)
         
         self.btn_calibrate = ttk.Button(f_controls, text="Calibrate Neutral", command=self.calibrate, state=tk.DISABLED)
         self.btn_calibrate.pack(side=tk.LEFT, padx=5)
@@ -112,6 +117,11 @@ class ControllerGUI:
         self.steer_deadzone = tk.DoubleVar(value=0.0)
         self.scale_steer_dz = ttk.Scale(self.frame_middle, from_=0.0, to_=0.5, orient=tk.HORIZONTAL, variable=self.steer_deadzone)
         self.scale_steer_dz.grid(row=2, column=1, padx=5, pady=5, sticky=tk.W)
+        
+        ttk.Label(self.frame_middle, text="Anti-Deadzone (Game Override):").grid(row=3, column=0, padx=5, pady=5, sticky=tk.W)
+        self.anti_deadzone = tk.DoubleVar(value=0.20)
+        self.scale_anti_dz = ttk.Scale(self.frame_middle, from_=0.0, to_=0.5, orient=tk.HORIZONTAL, variable=self.anti_deadzone)
+        self.scale_anti_dz.grid(row=3, column=1, padx=5, pady=5, sticky=tk.W)
         
         # Bottom Frame: Live Data
         self.frame_bottom = ttk.LabelFrame(self.root, text="Live Output")
@@ -170,15 +180,28 @@ class ControllerGUI:
         if mode == "Bluetooth (PAN)":
             from src.transport.wifi import WifiTransport, get_bluetooth_pan_ip
             bt_ip = get_bluetooth_pan_ip()
-            self.service.transport = WifiTransport(bt_ip, transport_name="Bluetooth")
-            self.log(f"Switched to Bluetooth PAN mode (Auto-detected Phone IP: {bt_ip}).")
-            self.log("Ensure Bluetooth Tethering is ON on your phone and PC is connected.")
+            if bt_ip == "DISCONNECTED":
+                self.log("ERROR: Windows Bluetooth PAN is not connected to the phone!")
+                self.log("Go to Windows Settings -> Bluetooth & devices -> Devices -> find your phone, click the '...', and select 'Connect'.")
+                self.service.transport = WifiTransport("127.0.0.1", transport_name="Bluetooth")
+            else:
+                self.service.transport = WifiTransport(bt_ip, transport_name="Bluetooth")
+                self.log(f"Switched to Bluetooth PAN mode (Auto-detected Phone IP: {bt_ip}).")
+                self.log("Ensure Bluetooth Tethering is ON on your phone and PC is connected.")
         elif mode == "Wi-Fi":
             from src.transport.wifi import WifiTransport
             from tkinter import simpledialog
-            ip = simpledialog.askstring("Wi-Fi Setup", "Enter Phone IP address (from app screen):", parent=self.root)
+            from src.ui.mapping_utils import load_config, save_config
+            
+            config = load_config()
+            last_ip = config.get("last_wifi_ip", "")
+            
+            ip = simpledialog.askstring("Wi-Fi Setup", "Enter Phone IP address (from app screen):", initialvalue=last_ip, parent=self.root)
             if ip and ip.strip():
-                self.service.transport = WifiTransport(ip.strip(), transport_name="Wi-Fi")
+                ip = ip.strip()
+                config["last_wifi_ip"] = ip
+                save_config(config)
+                self.service.transport = WifiTransport(ip, transport_name="Wi-Fi")
                 self.log(f"Switched to Wi-Fi mode ({ip.strip()}).")
             else:
                 self.transport_var.set("USB (Cable)")
@@ -403,215 +426,266 @@ class ControllerGUI:
                 vg_available = False
                 self.log(f"Virtual controller disabled: {e}. (Install ViGEmBus to enable controller emulation).")
                 
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(3.0)
-            
-            self.log(f"Connecting to socket at {target_ip}:5050...")
-            try:
-                s.connect((target_ip, 5050))
-            except Exception as e:
-                self.log(f"Connection failed to {target_ip}:5050 ({e}).")
-                self.log("💡 Tip: Ensure the GyroPad app is actively OPEN on your phone screen!")
-                s.close()
-                self.streaming = False
-                self.root.after(0, lambda: self.btn_start.config(text="Start Controller"))
-                return
-            
-            # Auth — validate PIN format before sending
-            pin = self.pin_var.get().strip()
-            if not pin:
-                self.log("ERROR: PIN is required. Check the phone screen.")
-                s.close()
-                self.streaming = False
-                self.root.after(0, lambda: self.btn_start.config(text="Start Controller"))
-                return
-            if not pin.isdigit() or len(pin) != 4:
-                self.log("ERROR: PIN must be exactly 4 digits (e.g. 3847). Check the phone screen.")
-                s.close()
-                self.streaming = False
-                self.root.after(0, lambda: self.btn_start.config(text="Start Controller"))
-                return
-                
-            s.sendall(f"AUTH {pin}\n".encode('utf-8'))
-            auth_resp = s.recv(1024).decode('utf-8').strip()
-            if auth_resp != "AUTH_OK":
-                self.log(f"Authentication failed: {auth_resp}")
-                s.close()
-                self.streaming = False
-                self.root.after(0, lambda: self.btn_start.config(text="Start Controller"))
-                return
-            
-            self.log("Connected and Authenticated!")
-            
-            s.setblocking(False)
-            
-            last_ping = 0
-            buffer = ""
-            
+            reconnect_delay = 0
             while self.streaming:
-                now = time.time()
-                if now - last_ping > 0.05:
-                    try:
-                        s.sendall(b"ping\n")
-                    except Exception:
-                        break
-                    last_ping = now
+                if reconnect_delay > 0:
+                    self.log(f"Reconnecting in {reconnect_delay}s...")
+                    time.sleep(reconnect_delay)
+                    if not self.streaming: break
                 
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(3.0)
+                
+                if reconnect_delay == 0:
+                    self.log(f"Connecting to socket at {target_ip}:5050...")
                 try:
-                    ready = select.select([s], [], [], 0.01)
-                    if ready[0]:
-                        data = s.recv(4096)
-                        if not data:
-                            break
-                        
-                        buffer += data.decode('utf-8')
-                        while '\n' in buffer:
-                            line, buffer = buffer.split('\n', 1)
-                            if line.strip():
+                    s.connect((target_ip, 5050))
+                    
+                    if vg_available and gamepad:
+                        def rumble_cb(client, target, large_motor, small_motor, led_number, user_data):
+                            if (large_motor > 0 or small_motor > 0) and getattr(self, 'streaming', False):
                                 try:
-                                    payload = json.loads(line)
-                                    acc = payload['accel']
-                                    gyr = payload['gyro']
-                                    buttons = payload.get('buttons', {})
-                                    joystick_left = payload.get('joystick_left', {'x': 0.0, 'y': 0.0})
-                                    joystick_right = payload.get('joystick_right', {'x': 0.0, 'y': 0.0})
-                                    touchpad_delta = payload.get('touchpad_delta', {'x': 0.0, 'y': 0.0})
-                                    
-                                    self.last_raw_accel = acc
-                                    self.last_raw_gyro = gyr
-                                    
-                                    # Profile dynamically
-                                    if self.mapper.mode != self.profile_var.get():
-                                        old_accel = self.mapper.accel_offset
-                                        old_gyro = self.mapper.gyro_offset
-                                        self.mapper = InputMapper(mode=self.profile_var.get())
-                                        self.mapper.set_calibration(old_accel, old_gyro)
-                                        
-                                    self.mapper.steering.deadzone = self.steer_deadzone.get()
-                                    
-                                    # Mouse control via Touchpad
-                                    if has_mouse_api:
-                                        t_dx = float(touchpad_delta.get('x', 0.0))
-                                        t_dy = float(touchpad_delta.get('y', 0.0))
-                                        dx = max(-60, min(60, int(t_dx * 1.5)))
-                                        dy = max(-60, min(60, int(t_dy * 1.5)))
-                                        if dx != 0 or dy != 0:
-                                            try:
-                                                user32.mouse_event(0x0001, dx, dy, 0, 0)
-                                            except Exception:
-                                                pass
-                                    
-                                    mapped = self.mapper.process(acc, gyr)
-                                    st = mapped["steering"]
-                                    th = mapped["throttle"]
-                                    
-                                    lx = joystick_left['x']
-                                    ly = joystick_left['y']
-                                    rx = joystick_right['x']
-                                    ry = joystick_right['y']
-                                    
-                                    final_lx = lx if (abs(lx) > 0.01 or abs(ly) > 0.01) else st
-                                    final_ly = ly if (abs(lx) > 0.01 or abs(ly) > 0.01) else th
-                                    
-                                    if vg_available:
-                                        if is_ps:
-                                            # PlayStation DualShock 4 / PS5 Emulation
-                                            gamepad.left_joystick_float(x_value_float=final_lx, y_value_float=final_ly)
-                                            gamepad.right_joystick_float(x_value_float=rx, y_value_float=ry)
-                                            
-                                            # Analog Triggers (L2 / R2)
-                                            lt_pressed = bool(buttons.get('L2'))
-                                            rt_pressed = bool(buttons.get('R2'))
-                                            gamepad.left_trigger_float(value_float=1.0 if lt_pressed else 0.0)
-                                            gamepad.right_trigger_float(value_float=1.0 if rt_pressed else 0.0)
-                                            
-                                            # Face & Shoulder Buttons
-                                            ds4_map = {
-                                                'Cross': vg.DS4_BUTTONS.DS4_BUTTON_CROSS,
-                                                'Circle': vg.DS4_BUTTONS.DS4_BUTTON_CIRCLE,
-                                                'Square': vg.DS4_BUTTONS.DS4_BUTTON_SQUARE,
-                                                'Triangle': vg.DS4_BUTTONS.DS4_BUTTON_TRIANGLE,
-                                                'L1': vg.DS4_BUTTONS.DS4_BUTTON_SHOULDER_LEFT,
-                                                'R1': vg.DS4_BUTTONS.DS4_BUTTON_SHOULDER_RIGHT,
-                                                'L3': vg.DS4_BUTTONS.DS4_BUTTON_THUMB_LEFT,
-                                                'R3': vg.DS4_BUTTONS.DS4_BUTTON_THUMB_RIGHT,
-                                                'Options': vg.DS4_BUTTONS.DS4_BUTTON_OPTIONS,
-                                                'Share': vg.DS4_BUTTONS.DS4_BUTTON_SHARE,
-                                            }
-                                            for f_btn, d_btn in ds4_map.items():
-                                                if buttons.get(f_btn):
-                                                    gamepad.press_button(button=d_btn)
-                                                else:
-                                                    gamepad.release_button(button=d_btn)
-                                                    
-                                            # Special Buttons: Touchpad and PS / GP
-                                            if buttons.get('Touchpad'):
-                                                gamepad.press_special_button(special_button=vg.DS4_SPECIAL_BUTTONS.DS4_SPECIAL_BUTTON_TOUCHPAD)
-                                            else:
-                                                gamepad.release_special_button(special_button=vg.DS4_SPECIAL_BUTTONS.DS4_SPECIAL_BUTTON_TOUCHPAD)
-                                                
-                                            if buttons.get('PS') or buttons.get('GP'):
-                                                gamepad.press_special_button(special_button=vg.DS4_SPECIAL_BUTTONS.DS4_SPECIAL_BUTTON_PS)
-                                            else:
-                                                gamepad.release_special_button(special_button=vg.DS4_SPECIAL_BUTTONS.DS4_SPECIAL_BUTTON_PS)
-                                                
-                                            # D-Pad
-                                            u = bool(buttons.get('DpadUp'))
-                                            d = bool(buttons.get('DpadDown'))
-                                            l = bool(buttons.get('DpadLeft'))
-                                            r = bool(buttons.get('DpadRight'))
-                                            if u and r:
-                                                gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_NORTHEAST)
-                                            elif u and l:
-                                                gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_NORTHWEST)
-                                            elif d and r:
-                                                gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_SOUTHEAST)
-                                            elif d and l:
-                                                gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_SOUTHWEST)
-                                            elif u:
-                                                gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_NORTH)
-                                            elif d:
-                                                gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_SOUTH)
-                                            elif l:
-                                                gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_WEST)
-                                            elif r:
-                                                gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_EAST)
-                                            else:
-                                                gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_NONE)
-                                                
-                                            gamepad.update()
-                                        else:
-                                            # Xbox 360 Emulation
-                                            gamepad.left_joystick_float(x_value_float=final_lx, y_value_float=final_ly)
-                                            gamepad.right_joystick_float(x_value_float=rx, y_value_float=ry)
-                                            
-                                            lt_val = 0.0
-                                            rt_val = 0.0
-                                            for f_btn, x_btn in self.mapping.items():
-                                                is_pressed = bool(buttons.get(f_btn))
-                                                if x_btn == "LEFT_TRIGGER":
-                                                    if is_pressed: lt_val = 1.0
-                                                elif x_btn == "RIGHT_TRIGGER":
-                                                    if is_pressed: rt_val = 1.0
-                                                elif x_btn != "NONE" and hasattr(vg.XUSB_BUTTON, x_btn):
-                                                    btn_val = getattr(vg.XUSB_BUTTON, x_btn)
-                                                    if is_pressed: gamepad.press_button(button=btn_val)
-                                                    else: gamepad.release_button(button=btn_val)
-                                                    
-                                            gamepad.left_trigger_float(value_float=lt_val)
-                                            gamepad.right_trigger_float(value_float=rt_val)
-                                            gamepad.update()
-                                        
-                                    # Print minimal status instead of full flood
-                                    if int(now * 10) % 5 == 0:  # Update log ~2 times a sec
-                                        self.log(f"LStick: {final_lx:.2f}, {final_ly:.2f} | RStick: {rx:.2f}, {ry:.2f}")
-                                except json.JSONDecodeError:
+                                    # Send vibration command (duration in ms based on motor intensity)
+                                    intensity = max(large_motor, small_motor)
+                                    duration = int((intensity / 255.0) * 200) # up to 200ms per trigger
+                                    s.sendall(f"VIB:{duration}\n".encode('utf-8'))
+                                except Exception:
                                     pass
-
-                except BlockingIOError:
-                    pass  # expected — non-blocking socket has no data yet
+                        try:
+                            gamepad.register_notification(callback_function=rumble_cb)
+                        except Exception as e:
+                            self.log(f"Could not register rumble: {e}")
+                            
                 except Exception as e:
-                    self.log(f"Unexpected stream error: {e}")  # Bug #3 fix: no longer silent
+                    if reconnect_delay == 0:
+                        self.log(f"Connection failed to {target_ip}:5050 ({e}).")
+                        self.log("💡 Tip: Ensure the GyroPad app is actively OPEN on your phone screen!")
+                        self.streaming = False
+                        self.root.after(0, lambda: self.btn_start.config(text="Start Controller"))
+                        s.close()
+                        return
+                    else:
+                        s.close()
+                        reconnect_delay = 2
+                        continue
+                
+                # Auth — validate PIN format before sending
+                pin = self.pin_var.get().strip()
+                if not pin or not pin.isdigit() or len(pin) != 4:
+                    self.log("ERROR: Invalid PIN. Check the phone screen.")
+                    s.close()
+                    self.streaming = False
+                    self.root.after(0, lambda: self.btn_start.config(text="Start Controller"))
+                    return
+                    
+                try:
+                    s.sendall(f"AUTH {pin}\n".encode('utf-8'))
+                    auth_resp = s.recv(1024).decode('utf-8').strip()
+                except Exception as e:
+                    s.close()
+                    reconnect_delay = 2
+                    continue
+                    
+                if auth_resp != "AUTH_OK":
+                    self.log(f"Authentication failed: {auth_resp}")
+                    s.close()
+                    self.streaming = False
+                    self.root.after(0, lambda: self.btn_start.config(text="Start Controller"))
+                    return
+                
+                if reconnect_delay > 0:
+                    self.log("Reconnected successfully!")
+                else:
+                    self.log("Connected and Authenticated!")
+                
+                reconnect_delay = 2 # Set for future drops
+                s.setblocking(False)
+                last_ping = 0
+                buffer = ""
+                
+                while self.streaming:
+                    now = time.time()
+                    if now - last_ping > 0.01:
+                        try:
+                            s.sendall(b"ping\n")
+                        except Exception:
+                            break # Break inner loop to trigger reconnect
+                        last_ping = now
+                    
+                    try:
+                        ready = select.select([s], [], [], 0.01)
+                        if ready[0]:
+                            data = s.recv(4096)
+                            if not data:
+                                break # EOF, trigger reconnect
+                            
+                            buffer += data.decode('utf-8')
+                            while '\n' in buffer:
+                                line, buffer = buffer.split('\n', 1)
+                                if line.strip():
+                                    try:
+                                        payload = json.loads(line)
+                                        acc = payload['accel']
+                                        gyr = payload['gyro']
+                                        buttons = payload.get('buttons', {})
+                                        joystick_left = payload.get('joystick_left', {'x': 0.0, 'y': 0.0})
+                                        joystick_right = payload.get('joystick_right', {'x': 0.0, 'y': 0.0})
+                                        touchpad_delta = payload.get('touchpad_delta', {'x': 0.0, 'y': 0.0})
+                                        
+                                        self.last_raw_accel = acc
+                                        self.last_raw_gyro = gyr
+                                        
+                                        # Profile dynamically
+                                        if self.mapper.mode != self.profile_var.get():
+                                            old_accel = self.mapper.accel_offset
+                                            old_gyro = self.mapper.gyro_offset
+                                            self.mapper = InputMapper(mode=self.profile_var.get())
+                                            self.mapper.set_calibration(old_accel, old_gyro)
+                                            
+                                        self.mapper.steering.deadzone = self.steer_deadzone.get()
+                                        self.mapper.steering.anti_deadzone = self.anti_deadzone.get()
+                                        
+                                        # Mouse control via Touchpad
+                                        if has_mouse_api:
+                                            t_dx = float(touchpad_delta.get('x', 0.0))
+                                            t_dy = float(touchpad_delta.get('y', 0.0))
+                                            dx = max(-60, min(60, int(t_dx * 1.5)))
+                                            dy = max(-60, min(60, int(t_dy * 1.5)))
+                                            if dx != 0 or dy != 0:
+                                                try:
+                                                    user32.mouse_event(0x0001, dx, dy, 0, 0)
+                                                except Exception:
+                                                    pass
+                                        
+                                        mapped = self.mapper.process(acc, gyr)
+                                        st = mapped["steering"]
+                                        th = mapped["throttle"]
+                                        
+                                        lx = joystick_left['x']
+                                        ly = joystick_left['y']
+                                        rx = joystick_right['x']
+                                        ry = joystick_right['y']
+                                        
+                                        final_lx = lx if (abs(lx) > 0.01 or abs(ly) > 0.01) else st
+                                        final_ly = ly if (abs(lx) > 0.01 or abs(ly) > 0.01) else th
+                                        
+                                        is_analog = payload.get('analog_triggers', False)
+                                        lt_raw = bool(buttons.get('L2'))
+                                        rt_raw = bool(buttons.get('R2'))
+                                        
+                                        if is_analog:
+                                            if lt_raw: self.l2_pressed_time = min(0.5, self.l2_pressed_time + 0.01)
+                                            else: self.l2_pressed_time = 0.0 # instant release
+                                            
+                                            if rt_raw: self.r2_pressed_time = min(0.5, self.r2_pressed_time + 0.01)
+                                            else: self.r2_pressed_time = 0.0
+                                            
+                                            final_lt = self.l2_pressed_time / 0.5
+                                            final_rt = self.r2_pressed_time / 0.5
+                                        else:
+                                            final_lt = 1.0 if lt_raw else 0.0
+                                            final_rt = 1.0 if rt_raw else 0.0
+                                        
+                                        if vg_available:
+                                            if is_ps:
+                                                # PlayStation DualShock 4 / PS5 Emulation
+                                                gamepad.left_joystick_float(x_value_float=final_lx, y_value_float=final_ly)
+                                                gamepad.right_joystick_float(x_value_float=rx, y_value_float=ry)
+                                                
+                                                # Analog Triggers (L2 / R2)
+                                                gamepad.left_trigger_float(value_float=final_lt)
+                                                gamepad.right_trigger_float(value_float=final_rt)
+                                                
+                                                # Face & Shoulder Buttons
+                                                ds4_map = {
+                                                    'Cross': vg.DS4_BUTTONS.DS4_BUTTON_CROSS,
+                                                    'Circle': vg.DS4_BUTTONS.DS4_BUTTON_CIRCLE,
+                                                    'Square': vg.DS4_BUTTONS.DS4_BUTTON_SQUARE,
+                                                    'Triangle': vg.DS4_BUTTONS.DS4_BUTTON_TRIANGLE,
+                                                    'L1': vg.DS4_BUTTONS.DS4_BUTTON_SHOULDER_LEFT,
+                                                    'R1': vg.DS4_BUTTONS.DS4_BUTTON_SHOULDER_RIGHT,
+                                                    'L3': vg.DS4_BUTTONS.DS4_BUTTON_THUMB_LEFT,
+                                                    'R3': vg.DS4_BUTTONS.DS4_BUTTON_THUMB_RIGHT,
+                                                    'Options': vg.DS4_BUTTONS.DS4_BUTTON_OPTIONS,
+                                                    'Share': vg.DS4_BUTTONS.DS4_BUTTON_SHARE,
+                                                }
+                                                for f_btn, d_btn in ds4_map.items():
+                                                    if buttons.get(f_btn):
+                                                        gamepad.press_button(button=d_btn)
+                                                    else:
+                                                        gamepad.release_button(button=d_btn)
+                                                        
+                                                # Special Buttons: Touchpad and PS / GP
+                                                if buttons.get('Touchpad'):
+                                                    gamepad.press_special_button(special_button=vg.DS4_SPECIAL_BUTTONS.DS4_SPECIAL_BUTTON_TOUCHPAD)
+                                                else:
+                                                    gamepad.release_special_button(special_button=vg.DS4_SPECIAL_BUTTONS.DS4_SPECIAL_BUTTON_TOUCHPAD)
+                                                    
+                                                if buttons.get('PS') or buttons.get('GP'):
+                                                    gamepad.press_special_button(special_button=vg.DS4_SPECIAL_BUTTONS.DS4_SPECIAL_BUTTON_PS)
+                                                else:
+                                                    gamepad.release_special_button(special_button=vg.DS4_SPECIAL_BUTTONS.DS4_SPECIAL_BUTTON_PS)
+                                                    
+                                                # D-Pad
+                                                u = bool(buttons.get('DpadUp'))
+                                                d = bool(buttons.get('DpadDown'))
+                                                l = bool(buttons.get('DpadLeft'))
+                                                r = bool(buttons.get('DpadRight'))
+                                                if u and r:
+                                                    gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_NORTHEAST)
+                                                elif u and l:
+                                                    gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_NORTHWEST)
+                                                elif d and r:
+                                                    gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_SOUTHEAST)
+                                                elif d and l:
+                                                    gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_SOUTHWEST)
+                                                elif u:
+                                                    gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_NORTH)
+                                                elif d:
+                                                    gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_SOUTH)
+                                                elif l:
+                                                    gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_WEST)
+                                                elif r:
+                                                    gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_EAST)
+                                                else:
+                                                    gamepad.directional_pad(direction=vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_NONE)
+                                                    
+                                                gamepad.update()
+                                            else:
+                                                # Xbox 360 Emulation
+                                                gamepad.left_joystick_float(x_value_float=final_lx, y_value_float=final_ly)
+                                                gamepad.right_joystick_float(x_value_float=rx, y_value_float=ry)
+                                                
+                                                lt_val = 0.0
+                                                rt_val = 0.0
+                                                for f_btn, x_btn in self.mapping.items():
+                                                    is_pressed = bool(buttons.get(f_btn))
+                                                    if x_btn == "LEFT_TRIGGER":
+                                                        if f_btn == 'L2': lt_val = final_lt
+                                                        elif is_pressed: lt_val = 1.0
+                                                    elif x_btn == "RIGHT_TRIGGER":
+                                                        if f_btn == 'R2': rt_val = final_rt
+                                                        elif is_pressed: rt_val = 1.0
+                                                    elif x_btn != "NONE" and hasattr(vg.XUSB_BUTTON, x_btn):
+                                                        btn_val = getattr(vg.XUSB_BUTTON, x_btn)
+                                                        if is_pressed: gamepad.press_button(button=btn_val)
+                                                        else: gamepad.release_button(button=btn_val)
+                                                        
+                                                gamepad.left_trigger_float(value_float=lt_val)
+                                                gamepad.right_trigger_float(value_float=rt_val)
+                                                gamepad.update()
+                                            
+                                        # Print minimal status instead of full flood
+                                        if int(now * 10) % 5 == 0:  # Update log ~2 times a sec
+                                            self.log(f"LStick: {final_lx:.2f}, {final_ly:.2f} | RStick: {rx:.2f}, {ry:.2f}")
+                                    except json.JSONDecodeError:
+                                        pass
+    
+                    except BlockingIOError:
+                        pass  # expected — non-blocking socket has no data yet
+                    except Exception as e:
+                        # Stream error, trigger reconnect
+                        break
 
         except Exception as e:
             self.log(f"Stream error: {e}")
@@ -638,3 +712,84 @@ class ControllerGUI:
             self.streaming = False
             self.root.after(0, lambda: self.btn_start.config(text="Start Controller"))
             self.root.after(0, lambda: self.btn_calibrate.config(state=tk.DISABLED))
+
+    def show_qr(self):
+        try:
+            import qrcode
+            from PIL import Image, ImageTk
+            import threading
+            
+            # Get local PC IP
+            pc_ip = socket.gethostbyname(socket.gethostname())
+            qr_data = f"gyropad://pair?pc_ip={pc_ip}&port=5051"
+            
+            qr = qrcode.QRCode(version=1, box_size=10, border=4)
+            qr.add_data(qr_data)
+            qr.make(fit=True)
+            img = qr.make_image(fill_color="black", back_color="white")
+            
+            qr_win = tk.Toplevel(self.root)
+            qr_win.title("QR Code Pairing")
+            qr_win.geometry("400x450")
+            
+            from tkinter import ttk
+            ttk.Label(qr_win, text=f"Scan to pair with PC ({pc_ip})", font=("Arial", 12, "bold")).pack(pady=10)
+            
+            # Keep reference
+            qr_win.qr_img = ImageTk.PhotoImage(img)
+            import tkinter as tk
+            tk.Label(qr_win, image=qr_win.qr_img).pack()
+            
+            ttk.Label(qr_win, text="Waiting for phone to scan...").pack(pady=10)
+            
+            # Start temp listener
+            def listen_for_pairing():
+                pair_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                pair_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                pair_sock.bind(("0.0.0.0", 5051))
+                pair_sock.listen(1)
+                pair_sock.settimeout(30.0) # wait up to 30s
+                
+                try:
+                    conn, addr = pair_sock.accept()
+                    data = conn.recv(1024).decode('utf-8')
+                    conn.close()
+                    pair_sock.close()
+                    
+                    if "PIN:" in data:
+                        # Extract IP from socket connection
+                        phone_ip = addr[0]
+                        phone_pin = data.split("PIN:")[1].strip()
+                        
+                        # Auto-fill and start
+                        self.root.after(0, lambda: self._on_paired(phone_ip, phone_pin, qr_win))
+                except Exception as e:
+                    pair_sock.close()
+                    self.log("QR Pairing cancelled or timed out.")
+            
+            threading.Thread(target=listen_for_pairing, daemon=True).start()
+            
+        except ImportError:
+            self.log("QR Code packages not installed. Run: pip install qrcode[pil] Pillow")
+
+    def _on_paired(self, phone_ip, phone_pin, qr_win):
+        from src.transport.wifi import WifiTransport
+        from src.ui.mapping_utils import load_config, save_config
+        
+        qr_win.destroy()
+        
+        # Save IP to history
+        config = load_config()
+        config["last_wifi_ip"] = phone_ip
+        save_config(config)
+        
+        self.transport_var.set("Wi-Fi")
+        self.service.transport = WifiTransport(phone_ip, transport_name="Wi-Fi")
+        self.device = phone_ip
+        
+        self.pin_var.set(phone_pin)
+        self.log(f"QR Pairing Successful! Phone IP: {phone_ip}")
+        
+        # Start stream automatically
+        if not self.streaming:
+            self.toggle_stream()

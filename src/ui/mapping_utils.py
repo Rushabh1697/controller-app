@@ -63,3 +63,25 @@ def save_mapping(mapping) -> bool:
     except OSError as e:
         print(f"Warning: Could not save mapping: {e}")
         return False
+
+
+CONFIG_FILE = os.path.join(_get_data_dir(), "config.json")
+
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def save_config(config) -> bool:
+    try:
+        with open(CONFIG_FILE, "w") as f:
+            json.dump(config, f, indent=4)
+        return True
+    except OSError as e:
+        print(f"Warning: Could not save config: {e}")
+        return False
+

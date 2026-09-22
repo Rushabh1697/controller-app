@@ -43,7 +43,11 @@ def main():
     elif args.bluetooth:
         from src.transport.wifi import get_bluetooth_pan_ip
         bt_ip = get_bluetooth_pan_ip()
-        print(f"Using Bluetooth PAN Transport (Auto-detected Phone IP: {bt_ip})")
+        if bt_ip == "DISCONNECTED":
+            print("ERROR: Windows Bluetooth PAN is not connected to the phone! (Check Windows Settings -> Bluetooth -> Connect)")
+            bt_ip = "127.0.0.1"
+        else:
+            print(f"Using Bluetooth PAN Transport (Auto-detected Phone IP: {bt_ip})")
         transport = WifiTransport(bt_ip, transport_name="Bluetooth")  # ✅ Bug #12
     else:
         transport = AdbTransport()

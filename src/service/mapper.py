@@ -1,18 +1,20 @@
 import collections
 
 class AxisMapper:
-    def __init__(self, max_val: float, deadzone: float = 0.05, sensitivity: float = 1.0, smoothing_window: int = 5, invert: bool = False):
+    def __init__(self, max_val: float, deadzone: float = 0.05, anti_deadzone: float = 0.0, sensitivity: float = 1.0, smoothing_window: int = 5, invert: bool = False):
         """
         Maps a raw sensor value to a normalized gamepad axis [-1.0, 1.0].
         
         :param max_val: The raw value magnitude that corresponds to full input (1.0).
         :param deadzone: Normalized deadzone [0.0, 1.0]. Inputs below this magnitude are ignored.
+        :param anti_deadzone: Immediate jump in output to defeat in-game deadzones (e.g., 0.20 jumps output to 20%).
         :param sensitivity: Multiplier for the output curve.
         :param smoothing_window: Number of samples for the moving average filter to reduce jitter.
         :param invert: If True, flips the sign of the output.
         """
         self.max_val = float(max_val)
         self.deadzone = float(deadzone)
+        self.anti_deadzone = float(anti_deadzone)
         self.sensitivity = float(sensitivity)
         self.invert = invert
         self.history = collections.deque(maxlen=smoothing_window)
@@ -32,6 +34,11 @@ class AxisMapper:
             # Rescale so that just past the deadzone starts smoothly at 0.0, scaling up to 1.0
             sign = 1.0 if norm > 0 else -1.0
             norm = sign * ((abs(norm) - self.deadzone) / (1.0 - self.deadzone))
+            
+            # 2.5 Apply Anti-Deadzone (jump start)
+            if self.anti_deadzone > 0.0:
+                # If we have input, boost it by the anti-deadzone floor
+                norm = sign * (self.anti_deadzone + (abs(norm) * (1.0 - self.anti_deadzone)))
             
         # 3. Apply Sensitivity
         norm = norm * self.sensitivity
@@ -53,11 +60,11 @@ class InputMapper:
             # For Racing mode! (Hold phone horizontally, top of phone pointing to your LEFT)
             # Steering: Tilting like a steering wheel changes the Y axis.
             # Steer Right -> Y goes positive. Steer Left -> Y goes negative. (No invert needed)
-            self.steering = AxisMapper(max_val=6.0, deadzone=0.0, invert=False, smoothing_window=4)
+            self.steering = AxisMapper(max_val=6.0, deadzone=0.0, invert=False, smoothing_window=1)
         else:
             # Portrait mode (Hold phone vertically)
             # In portrait, tilting right makes X negative. So we MUST invert it for gamepads.
-            self.steering = AxisMapper(max_val=6.0, deadzone=0.0, invert=True, smoothing_window=4)
+            self.steering = AxisMapper(max_val=6.0, deadzone=0.0, invert=True, smoothing_window=1)
         
     def set_calibration(self, accel: list, gyro: list):
         self.accel_offset = list(accel)

@@ -226,8 +226,8 @@ class CLI:
             
             while True:
                 now = time.time()
-                # Phase 4 streaming: stream at ~50Hz by pinging
-                if now - last_ping > 0.05:
+                # Phase 4 streaming: stream at ~100Hz by pinging
+                if now - last_ping > 0.01:
                     try:
                         s.sendall(b"ping\n")
                         ping_queue.append(now)

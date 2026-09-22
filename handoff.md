@@ -266,23 +266,19 @@ When navigating to `https://github.com/Rushabh1697/controller-app/blob/main/Rele
 
 ## 8. Planned Future Features (Agreed Upon)
 
-1. **Auto-Reconnect on Drop**: Implement socket retry logic to silently reconnect if the connection drops, without breaking the game session.
-2. **Connection History / Last Used IP**: Save the last successfully connected IP to a tiny config file to skip manual IP entry in Wi-Fi mode.
-3. **Battery % Notification**: Send battery telemetry from the phone and trigger native Windows toast notifications (at 20%, 10%, 5%) so the user knows to charge.
-4. **QR Code Pairing**: Display a QR code on the PC that the phone can scan to instantly pair (auto-fills IP and PIN).
-5. **Vibration Feedback Toggle**: Add an ON/OFF switch in the Android app settings to disable rumble for battery saving.
-6. **Multiple Controller Skin Themes**: Provide different visual layouts (PS5, Xbox, Switch) and allow custom image uploads for the UI.
-7. **Per-Game Profile Auto-Switching**: Background Windows monitor to automatically swap control profiles depending on the focused game window.
-8. **Profile Import / Export**: Save and load .json profiles for sharing game configurations.
+1. **Battery % Notification**: Send battery telemetry from the phone and trigger native Windows toast notifications (at 20%, 10%, 5%) so the user knows to charge.
+2. **QR Code Pairing**: Display a QR code on the PC that the phone can scan to instantly pair (auto-fills IP and PIN).
+3. **Vibration Feedback Toggle**: Add an ON/OFF switch in the Android app settings to disable rumble for battery saving.
+4. **Multiple Controller Skin Themes**: Provide different visual layouts (PS5, Xbox, Switch) and allow custom image uploads for the UI.
+5. **Per-Game Profile Auto-Switching**: Background Windows monitor to automatically swap control profiles depending on the focused game window.
+6. **Profile Import / Export**: Save and load .json profiles for sharing game configurations.
 
 
-## 9. Recent Fixes & Additions (September 21, 2026)
-- **Gyroscope Lag Fix:** Increased Flutter `gyroscopeEventStream` and `accelerometerEventStream` polling to 100Hz (10ms interval) for ultra-low latency steering.
-- **Sensitivity & Settings Menu:** Added a new Settings (gear) icon below the GP button that opens a modal to dynamically adjust Gyroscope Sensitivity (0.5x - 5.0x multiplier).
-- **PlayStation Mic Mute Button:** Added a physical-style pill button for microphone muting directly below the GP button, featuring an orange LED indicator state, mapped over TCP.
-- **In-App Auto Updater:** Added `version.json` network checking against the main repository. Both a "What's New" welcome dialog and an "Update Available" notification are now active in the Flutter app using `package_info_plus` and `shared_preferences`.
-- **Website Release Notes:** Designed a card-based styled "Release Notes" section in `website/index.html` to display the changelog.
-- **UI Freeze Fix:** Moved `refresh_device()` network probing to a background `threading.Thread` so the main Tkinter thread no longer blocks for 0.6s every 2s.
-- **Ghost Controller Fix:** Ensured `_test_pad.reset()` is called before destruction to cleanly unregister the device from ViGEmBus.
-- **Joystick L3/R3 Inversion Fix:** Removed the manual `-` sign from the Y-axis processing in `gui.py` and `cli.py` to match Flutter coordinate space.
-- **Package Name Fix:** Properly refactored the Android Kotlin folder structure from `com/example/companion_app` to `com/gyropad/app` to prevent instant `ClassNotFoundException` crashes on launch.
+## 9. Recent Fixes & Additions (September 22, 2026)
+- **Touchpad Tap Reliability Fix**: Upgraded the Touchpad hit detection in the Flutter app to use a raw pointer `Listener`. Previously, slight finger movements on the glass would register as a pan and cancel the tap event. It now reliably triggers the PS4 Touchpad Click anywhere on the button.
+- **Auto-Reconnect on Drop**: Implemented a resilient outer `while` loop in `gui.py`'s `stream_loop()`. If the network socket drops or times out mid-game, it now gracefully pauses and silently retries the connection until it recovers, rather than permanently stopping the stream.
+- **Connection History (Last Used IP)**: Added `config.json` utilities. The PC host now automatically saves the last successfully used Wi-Fi IP and pre-fills the input dialog on the next launch, removing the need to type it every time.
+- **True Deadzone/Lag Fix:** Found and fixed the real cause of the perceived "deadzone". While the deadzone was indeed set to 0.0, the Python host (`gui.py` and `cli.py`) was still pinging the network at 20Hz (`0.05` intervals) while the Flutter app was generating data at 100Hz. This 20Hz bottleneck combined with `smoothing_window=4` created a ~200ms input lag that felt exactly like a deadzone. Increased host polling to 100Hz (`0.01` intervals) and reduced `smoothing_window` to `1` (0 lag) to completely eliminate the physical delay.
+- **Bluetooth PAN IP Detection Fix:** Improved `ipconfig` parsing in `src/transport/wifi.py` to correctly detect the phone's Bluetooth PAN IP. Previously, it failed when Windows omitted the `Default Gateway` for the Bluetooth adapter (which happens if Wi-Fi is simultaneously connected). Now it accurately derives the gateway by checking the Bluetooth adapter's IPv4 address and targeting the `.1` subnet root.
+- **Anti-Deadzone (Game Override):** Added an anti-deadzone algorithm to `mapper.py` and a UI slider to instantly boost small steering movements past the 15-20% deadzone baked into most PC games, completely eliminating the "deadzone feeling".
+- **Hold & Ramp Analog Triggers:** Added time-based ramping logic for L2 and R2 in `gui.py`. Added a Settings toggle in the Flutter app to simulate smooth analog trigger pulls over 0.5 seconds instead of instant digital 100% presses.

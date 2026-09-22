@@ -207,7 +207,7 @@ In the GyroPad Desktop Host, the **`Emulation:`** dropdown allows switching betw
 * **Solution:** This occurred in PyInstaller windowed mode (no console window) when accessing `sys.stdout.buffer`. This is now resolved in the latest `Release/GyroPadHost-Windows.exe` build with safe windowed stream redirection.
 
 ### Q: "Failed to load dynlib/dll ViGEmClient.dll"
-* **Solution:** Use the latest build of `GyroPadHost-Windows.exe` from the `Release/` directory. All required C++ driver DLLs are bundled directly into the executable.
+* **Solution:** Use the latest build of `GyroPadHost-Windows.exe` from the `Release/` directory. All required C++ driver DLLs are bundled directly into the executable (now built with `--collect-all vgamepad`).
 
 ### Q: "Virtual controller disabled: Install ViGEmBus"
 * **Solution:** Install the [ViGEmBus driver](https://github.com/nefarius/ViGEmBus/releases/latest) on your PC and restart the host.
@@ -227,7 +227,7 @@ In the GyroPad Desktop Host, the **`Emulation:`** dropdown allows switching betw
 ### Q: "Connection timed out" in Bluetooth mode
 * **Check:**
   1. Is **Bluetooth tethering** turned ON in your phone's Hotspot & Tethering settings?
-  2. Is your PC connected to your phone's Bluetooth access point? (Test in command prompt: `ping <phone gateway IP>` should reply).
+  2. Did you explicitly join the Personal Area Network? Just pairing isn't enough. Press Windows Key, type **Control Panel**, go to **Devices and Printers**, right-click your phone, and select **Connect using -> Access point**.
   3. Is the GyroPad app **open and visible** on your phone screen? If the phone screen turns off, Android suspends incoming network connections.
 
 ---

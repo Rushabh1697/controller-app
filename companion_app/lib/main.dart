@@ -64,6 +64,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
   final int _port = 5050;
   bool _showDebug = false;
   double _gyroSensitivity = 1.0;
+  bool _analogTriggers = false;
 
   double _leftStickX = 0.0;
   double _leftStickY = 0.0;
@@ -340,6 +341,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
       'joystick_left': {'x': _leftStickX, 'y': _leftStickY},
       'joystick_right': {'x': _rightStickX, 'y': _rightStickY},
       'touchpad_delta': {'x': _touchpadDeltaX, 'y': _touchpadDeltaY},
+      'analog_triggers': _analogTriggers,
     };
     client.writeln(jsonEncode(payload));
     
@@ -605,63 +607,66 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
     bool isPressed = _buttons['Touchpad']!;
     Color glowColor = const Color(0xFF00439C);
 
-    return GestureDetector(
-      onPanUpdate: (details) {
-        _touchpadDeltaX += details.delta.dx;
-        _touchpadDeltaY += details.delta.dy;
-      },
-      onTapDown: (_) => setState(() => _buttons['Touchpad'] = true),
-      onTapUp: (_) => setState(() => _buttons['Touchpad'] = false),
-      onTapCancel: () => setState(() => _buttons['Touchpad'] = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 50),
-        width: MediaQuery.of(context).size.width * 0.4,
-        constraints: const BoxConstraints(maxWidth: 400, minWidth: 200),
-        height: 140,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isPressed ? glowColor : Colors.grey.shade300,
-            width: isPressed ? 3.0 : 1.5,
+    return Listener(
+      onPointerDown: (_) => setState(() => _buttons['Touchpad'] = true),
+      onPointerUp: (_) => setState(() => _buttons['Touchpad'] = false),
+      onPointerCancel: (_) => setState(() => _buttons['Touchpad'] = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onPanUpdate: (details) {
+          _touchpadDeltaX += details.delta.dx;
+          _touchpadDeltaY += details.delta.dy;
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 50),
+          width: MediaQuery.of(context).size.width * 0.4,
+          constraints: const BoxConstraints(maxWidth: 400, minWidth: 200),
+          height: 140,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isPressed ? glowColor : Colors.grey.shade300,
+              width: isPressed ? 3.0 : 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isPressed ? glowColor.withValues(alpha: 0.4) : Colors.black12,
+                blurRadius: isPressed ? 20 : 6,
+                spreadRadius: isPressed ? 2 : 0,
+                offset: const Offset(0, 4),
+              )
+            ],
           ),
-          boxShadow: [
-            BoxShadow(
-              color: isPressed ? glowColor.withValues(alpha: 0.4) : Colors.black12,
-              blurRadius: isPressed ? 20 : 6,
-              spreadRadius: isPressed ? 2 : 0,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Stack(
-          children: [
-            // Blue LED light bar around the top and sides of the touchpad
-            Positioned(
-              top: 0, left: 0, right: 0,
-              child: Container(
-                height: 4,
-                decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                  color: isPressed ? glowColor : glowColor.withValues(alpha: 0.3),
-                  boxShadow: [
-                    BoxShadow(color: glowColor, blurRadius: isPressed ? 10 : 5, spreadRadius: 1)
-                  ],
+          child: Stack(
+            children: [
+              // Blue LED light bar around the top and sides of the touchpad
+              Positioned(
+                top: 0, left: 0, right: 0,
+                child: Container(
+                  height: 4,
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    color: isPressed ? glowColor : glowColor.withValues(alpha: 0.3),
+                    boxShadow: [
+                      BoxShadow(color: glowColor, blurRadius: isPressed ? 10 : 5, spreadRadius: 1)
+                    ],
+                  ),
                 ),
               ),
-            ),
-            Center(
-              child: Text(
-                'TOUCHPAD',
-                style: TextStyle(
-                  color: isPressed ? glowColor : Colors.grey.shade400,
-                  fontSize: 12,
-                  letterSpacing: 2,
-                  fontWeight: FontWeight.bold,
+              Center(
+                child: Text(
+                  'TOUCHPAD',
+                  style: TextStyle(
+                    color: isPressed ? glowColor : Colors.grey.shade400,
+                    fontSize: 12,
+                    letterSpacing: 2,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -819,6 +824,18 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                       ),
                       const Text('5.0x'),
                     ],
+                  ),
+                  const Divider(),
+                  SwitchListTile(
+                    title: const Text("Hold & Ramp Triggers"),
+                    subtitle: const Text("L2/R2 simulate analog press over 0.5s"),
+                    value: _analogTriggers,
+                    activeColor: const Color(0xFF00439C),
+                    contentPadding: EdgeInsets.zero,
+                    onChanged: (val) {
+                      setDialogState(() => _analogTriggers = val);
+                      setState(() => _analogTriggers = val);
+                    },
                   ),
                 ],
               ),

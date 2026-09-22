@@ -58,18 +58,33 @@ def get_bluetooth_pan_ip() -> str:
         out = subprocess.check_output(['ipconfig'], text=True, errors='ignore')
         lines = out.split('\n')
         in_bt = False
+        ip_address = None
+        
         for line in lines:
-            line_str = line.strip()
-            if 'Bluetooth' in line and 'adapter' in line.lower():
-                in_bt = True
+            # Check for new adapter sections (no leading spaces)
+            if not line.startswith(' ') and not line.startswith('\r') and line.strip() != '' and ':' in line:
+                if 'bluetooth' in line.lower():
+                    in_bt = True
+                else:
+                    in_bt = False
                 continue
+            
             if in_bt:
-                if 'adapter' in line.lower() and ':' in line:
-                    break
+                # Fallback: if we find an IPv4 address, the phone gateway is usually .1 on that subnet
+                if 'IPv4 Address' in line or 'IPv4' in line:
+                    match = re.search(r'([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)[0-9]{1,3}', line)
+                    if match:
+                        ip_address = match.group(1) + '1'
+                
+                # Preferred: if Windows provides the exact Default Gateway, use it immediately
                 if 'Default Gateway' in line:
                     match = re.search(r'([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})', line)
                     if match:
                         return match.group(1)
+        
+        if ip_address:
+            return ip_address
+            
     except Exception:
         pass
-    return "192.168.44.1"
+    return "DISCONNECTED"
