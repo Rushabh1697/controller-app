@@ -23,66 +23,21 @@
 
 ---
 
-## 2. Current Status & Where We Left Off (As of Sept 21, 2026)
+## 2. Current Status & Where We Left Off
+Currently, all major milestones including v1.3.0 features have been completed.
+The Python host (`GyroPadHost-Windows.exe`) is bundled as a single executable without console popups, including hidden dependencies for `qrcode` and `vgamepad`. The Flutter Companion App (`GyroPad-Android.apk`) features multiple skin themes (PS5, Xbox, Switch, Custom). The Xbox mapping duplicate cancellation bug has been resolved.
 
-### ✅ Completed & Fully Operational:
-1. **Companion App (Flutter/Android):**
-   * Package name updated to `gyropad`.
-   * Custom controller icon registered in `pubspec.yaml` and generated via `flutter_launcher_icons`.
-   * PS button renamed to **"GP"** button in HUD and maps to both `'GP'` and `'PS'`.
-   * Generates a 4-digit PIN on launch, starts TCP server on port 5050, requires `AUTH <PIN>\n` before streaming.
-   * Touchpad delta accumulation bug fixed (`+= details.delta.dx`).
-   * Production Release APK built: `Release/GyroPad-Android.apk` (~42.1 MB). Tested with `flutter analyze` (0 issues) and `flutter test` (all tests passed).
-   * **[Bug #3 Fixed]** TCP stream is now line-buffered per client using `StringBuffer` — AUTH no longer fails when packets arrive fragmented over Wi-Fi or Bluetooth.
-   * **[Bug #5 Fixed]** Touchpad delta now resets to `0.0` when all clients disconnect — prevents wild mouse jump on first connection.
-   * **[Bug #11 Fixed]** Sensor events (`_accelSub`, `_gyroSub`) no longer call `setState` — eliminates 100 Hz widget rebuilds and jank.
-   * **[Bug #13 Fixed]** `_clients.remove()` in `onDone`/`onError` is now guarded with `.contains()` to avoid unnecessary `setState`.
-   * **[Android Release INTERNET Permission Fixed]** Added `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, and `HIGH_SAMPLING_RATE_SENSORS` to main manifest.
-   * **[FULL_AUDIT Bug #5 Fixed]** `ServerSocket.bind()` now uses `shared: true` (SO_REUSEADDR) — prevents `EADDRINUSE` on hot-restart.
-   * **[FULL_AUDIT Bug #2/#11 Fixed]** Single-client enforcement: new connections are rejected with `BUSY` if `_clients.isNotEmpty`.
-   * **[FULL_AUDIT Bug #8 Fixed]** Failed auth attempt counter per IP with 5-attempt lockout and 500ms artificial delay on AUTH_FAIL.
-   * **[FULL_AUDIT Bug #15 Fixed]** L3 and R3 thumbsticks wrapped in `RepaintBoundary` — limits rebuild propagation from touch events.
-   * **[FULL_AUDIT Bug #18 Fixed]** `applicationId` and `namespace` changed from `com.example.companion_app` to `com.gyropad.app` in `build.gradle.kts`.
-2. **Desktop Host (Python/Windows):**
-   * Window title and argument parsers updated to "GyroPad Desktop Host".
-   * Tilt throttle detection **completely removed** (games use their own triggers; tilt controls horizontal steering only).
-   * **Critical Windows Mouse Freeze Fix:** Replaced untyped `ctypes.windll.user32.mouse_event` with typed `argtypes` and clamped deltas to `[-60, 60]`.
-   * Wi-Fi 4-digit PIN authentication field added to Tkinter GUI and CLI.
-   * Dynamic Button Remapping Studio (`src/ui/mapping_utils.py` + `src/ui/gui.py`) with dropdown editor saving to `%APPDATA%\GyroPad\mapping.json`.
-   * Bluetooth PAN transport flag added (`--bluetooth`) routing to auto-detected phone IP.
-   * Standalone Windows executable built with PyInstaller: `Release/GyroPadHost-Windows.exe` (~13.6 MB).
-   * **[FULL_AUDIT Bug #3 Fixed]** `stream_loop` inner `except Exception: pass` replaced with specific handlers — `BlockingIOError` silenced, unexpected exceptions now logged.
-   * **[FULL_AUDIT Bug #6 Fixed]** `list_devices()` now uses `sock.settimeout(0.6) + sock.connect_ex()` instead of `create_connection()` — no more full TCP handshakes flooding the phone app.
-   * **[FULL_AUDIT Bug #7 Fixed]** `_test_pad` properly released via `reset()+update()` before `None` assignment — both in stream_loop start and in `finally` block.
-   * **[FULL_AUDIT Bug #10 Fixed]** `on_transport_change()` guarded — rejects change and reverts combobox if `self.streaming == True`.
-   * **[FULL_AUDIT Bug #12 Fixed]** `os.devnull` handles now registered with `atexit` for proper close on process exit.
-   * **[FULL_AUDIT Bug #13 Fixed]** CLI `run_live_mode()` now enables Windows ANSI, checks terminal size (≥15 rows) before using fixed cursor row.
-   * **[FULL_AUDIT Bug #14 Fixed]** `AxisMapper.history` deque cleared in `set_calibration()` — no more stale-sample drift right after calibration.
-   * **[FULL_AUDIT Bug #17 Fixed]** `save_mapping()` returns `bool` and wraps in `try/except OSError`; GUI shows error message on failure.
-   * **[FREEZE FIX]** `refresh_device()` now spawns a background thread for `detect()` — UI never blocks during 0.6s network probe.
-3. **Official Website (`website/`):**
-   * Full 8-section responsive landing page constructed.
-   * Direct download buttons pointed to GitHub raw stream URLs (verified correct `/raw/` URLs — not `/blob/`).
-   * **[FULL_AUDIT Bug #16 Fixed]** `app.js` hamburger menu event listeners wrapped in `if (toggle && navLinks)` null guard.
-   * **[FULL_AUDIT Bug #9 Fixed]** `website/assets/GyroPad-Android.apk` and `website/assets/GyroPadHost-Windows.exe` removed from git index (`git rm --cached`). `.gitignore` blocks them in future.
-4. **Repository Hygiene:**
-   * **[FULL_AUDIT Bug #20 Fixed]** `.gitignore` updated with entries for `.idea/`, `*.iml`, `sensor_dump*.txt`, `GyroPadHost.spec` (duplicate), `website/assets/*.apk`, `website/assets/*.exe`. All tracked junk files removed from git index via `git rm --cached`.
-   * **[FULL_AUDIT Bug #19 Fixed]** `handoff.md` Section 4C corrected: landscape mode uses `accel[1]` (Y axis), portrait uses `accel[0]` (X axis).
+The app supports:
+- Wi-Fi and Bluetooth PAN connectivity
+- Zero-deadzone raw 1:1 steering with Persistent Calibration Taring
+- Per-Game Profile Auto-Switching & Config Import/Export
+- Multiple Controller Skin Themes (PS5, Xbox, Switch, Custom Image)
+- Hold & Ramp Analog Triggers for L2/R2
+- Touchpad mouse emulation
+- Battery Toast Notifications on PC
+- Physical haptic rumble feedback
 
-### 📌 Current State & Next Steps:
-* [x] **All FULL_AUDIT.md bugs fixed** (excluding Bug #4 agentation.js — intentionally skipped per user instruction).
-* [x] **Git Repository Synced:** All 14 previous bug fixes + all FULL_AUDIT bugs committed to `main`.
-* [x] **Mapping storage:** Custom button mappings persisted at `%APPDATA%\GyroPad\mapping.json`.
-* [x] **Rebuilt Release APK:** Built with all Flutter bug fixes and new features applied (`Release/GyroPad-Android.apk`) — manually compiled to bypass temporary `dl.google.com` network/DNS drops on the host.
-* [x] **Rebuilt Windows EXE (GUI-first):** Built with PyInstaller (`Release/GyroPadHost-Windows.exe`).
-* [x] **Universal Setup Guide:** [`SETUP_GUIDE.md`](./SETUP_GUIDE.md) updated with sensitivity, mute button, and `flutter run` developer mode fixes.
-* [x] **Bluetooth PAN Connection Verified:** Verified raw socket connection to phone gateway (`10.18.154.11:5050`) with 0 errors.
-* [x] **ViGEmBus & PlayStation Verification:** Virtual Sony DualShock 4 / PS5 controller confirmed active (`0x054C:0x05C4`).
-* [ ] Push to GitHub (`git push origin main`) and optionally attach release assets to `v1.0.0`.
-* [ ] Deploy to Vercel by importing `Rushabh1697/controller-app` on [vercel.com](https://vercel.com). Root `vercel.json` will automatically publish `website/`.
-* [x] Run desktop host GUI, enter 4-digit PIN, and test steering & triggers live in F1 2022.
-
----
+**Everything is committed and tagged as `v1.3.0` on GitHub.**
 
 ## 3. Directory & File Structure
 
@@ -266,7 +221,7 @@ When navigating to `https://github.com/Rushabh1697/controller-app/blob/main/Rele
 
 ## 8. Planned Future Features
 
-1. **Multiple Controller Skin Themes**: Provide different visual layouts (PS5, Xbox, Switch) and allow custom image uploads for the UI.
+*(All original handoff features for v1.3.0 have been completed!)*
 
 ## 9. Recent Fixes & Additions (v1.2.0 Release - September 22, 2026)
 - **QR Code Pairing (PC Side Completed)**: Added a "📱 QR Pair" button to the PC app that generates a QR code and starts a temporary pairing server (`port 5051`).
