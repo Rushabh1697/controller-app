@@ -16,8 +16,9 @@
    - [Mode C: Wi-Fi (Local Network)](#mode-c-wi-fi-local-network)
 6. [Step 4: Verify Controller in Windows & Browser](#6-step-4-verify-controller-in-windows--browser)
 7. [Step 5: In-Game Setup (e.g. F1 2022 & Racing Games)](#7-step-5-in-game-setup-eg-f1-2022--racing-games)
-8. [Controller Emulation Modes: PlayStation vs. Xbox](#8-controller-emulation-modes-playstation-vs-xbox)
-9. [Troubleshooting & FAQ](#9-troubleshooting--faq)
+8. [Game Profiles & Auto-Switching (New in v1.3.0)](#8-game-profiles--auto-switching-new-in-v130)
+9. [Controller Emulation Modes: PlayStation vs. Xbox](#9-controller-emulation-modes-playstation-vs-xbox)
+10. [Troubleshooting & FAQ](#10-troubleshooting--faq)
 
 ---
 
@@ -185,19 +186,41 @@ Before launching a game, verify your controller inputs live:
    * **Voice Chat Mute:** New pill-shaped **Mute** button (below the GP button).
 4. **Customizing Sensitivity (New in v1.1.0):**
    * Tap the new **Settings (gear) icon** below the Mute button to adjust Gyroscope Sensitivity dynamically (0.5x to 5.0x) without disconnecting.
-5. **Calibration Tip:**
-   * Hold your phone in your natural resting grip and click **"Calibrate Neutral"** in the GyroPad PC window to set zero-tilt center.
+5. **Permanent Hardware Calibration (Fixes Stick Drift):**
+   * Even when laid flat, physical camera bumps cause your phone to tilt 1-2 degrees, which gravity detects as "stick drift".
+   * Simply rest your phone flat on your desk (or hold it in your natural racing grip), and click **"Calibrate Neutral"** in the GyroPad PC window.
+   * This instantly mathematically zeroes out the hardware offset to a perfect `0.000` dead-center, and automatically saves it permanently into your active Game Profile!
    * In F1 2022 calibration, set **Steering Deadzone** to `0%` or `1%`.
-6. **Defeating the Game's Deadzone (New in v1.2.0):**
-   * If you still feel a slight deadzone when turning, it's because PC games completely ignore the first 15-20% of joystick input!
-   * Adjust the new **"Anti-Deadzone (Game Override)"** slider in the GyroPad PC UI to `0.20` or higher. This will instantly boost your physical tilt past the game's hidden deadzone, giving you zero lag!
-7. **Hold & Ramp Analog Triggers (New in v1.2.0):**
+6. **Hold & Ramp Analog Triggers (New in v1.2.0):**
    * Tap the **Settings (gear) icon** on your phone and enable **"Hold & Ramp Triggers"**. 
    * When enabled, pressing L2 or R2 will smoothly simulate an analog trigger being pressed from 0% to 100% over half a second. Perfect for smooth throttle control in racing games!
 
 ---
 
-## 8. Controller Emulation Modes: PlayStation vs. Xbox
+## 8. Game Profiles & Auto-Switching (New in v1.3.0)
+
+GyroPad now supports multiple **Game Profiles**, allowing you to save different button mappings for different games and automatically switch between them!
+
+1. **Creating a Profile:**
+   * In the GyroPad PC Host, click **Manage Profiles**.
+   * Click **New Profile** and give it a name (e.g., "F1 2022" or "Forza Horizon 5").
+   * *(Optional)* Enter the game's executable name (e.g., `F1_22.exe` or `ForzaHorizon5.exe`) to link the profile to the game.
+
+2. **Editing Mappings:**
+   * Select your new profile from the **Game Profile** dropdown.
+   * Click **Edit Mapping** to customize which phone buttons map to which Xbox/PlayStation buttons. Changes are saved automatically to the active profile.
+
+3. **Auto-Switching:**
+   * Check the **Auto-Switch** box next to the Game Profile dropdown.
+   * GyroPad will run silently in the background and detect when you launch or tab into a game. If the active window's executable matches a profile you created, GyroPad will instantly swap to that profile's controls!
+
+4. **Import / Export Profiles:**
+   * In **Manage Profiles**, you can select a profile and click **Export Selected** to save it as a `.json` file to share with friends.
+   * Use **Import Profile** to load a configuration file downloaded from the internet or sent by a friend.
+
+---
+
+## 9. Controller Emulation Modes: PlayStation vs. Xbox
 
 In the GyroPad Desktop Host, the **`Emulation:`** dropdown allows switching between:
 
@@ -208,7 +231,7 @@ In the GyroPad Desktop Host, the **`Emulation:`** dropdown allows switching betw
 
 ---
 
-## 9. Troubleshooting & FAQ
+## 10. Troubleshooting & FAQ
 
 ### Q: "Failed to execute script 'main': 'NoneType' object has no attribute 'buffer'"
 * **Solution:** This occurred in PyInstaller windowed mode (no console window) when accessing `sys.stdout.buffer`. This is now resolved in the latest `Release/GyroPadHost-Windows.exe` build with safe windowed stream redirection.

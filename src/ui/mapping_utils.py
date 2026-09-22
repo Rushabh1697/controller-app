@@ -17,10 +17,9 @@ def _get_data_dir() -> str:
     return data_dir
 
 
-# ✅ Bug #8: Write to %APPDATA%\GyroPad\mapping.json instead of __file__-relative path.
-# Using __file__ inside a PyInstaller onefile .exe resolves to a temp read-only extraction
-# directory that is deleted on exit, making custom mappings impossible to persist.
 MAPPING_FILE = os.path.join(_get_data_dir(), "mapping.json")
+PROFILES_FILE = os.path.join(_get_data_dir(), "profiles.json")
+CONFIG_FILE = os.path.join(_get_data_dir(), "config.json")
 
 DEFAULT_MAPPING = {
     "Cross": "XUSB_GAMEPAD_A",
@@ -44,28 +43,73 @@ DEFAULT_MAPPING = {
     "GP": "XUSB_GAMEPAD_GUIDE"
 }
 
-
-def load_mapping():
-    if os.path.exists(MAPPING_FILE):
+def load_profiles():
+    """Loads all profiles, migrating from mapping.json if necessary."""
+    if os.path.exists(PROFILES_FILE):
         try:
-            with open(MAPPING_FILE, "r") as f:
+            with open(PROFILES_FILE, "r") as f:
                 return json.load(f)
         except Exception:
             pass
-    return DEFAULT_MAPPING.copy()
+            
+    # Default profiles structure
+    default_profiles = {
+        "active_profile": "Default",
+        "auto_switch": True,
+        "profiles": [
+            {
+                "name": "Default",
+                "exe_name": "",
+                "mapping": DEFAULT_MAPPING.copy()
+            }
+        ]
+    }
+    
+    # Migrate old mapping if it exists
+    if os.path.exists(MAPPING_FILE):
+        try:
+            with open(MAPPING_FILE, "r") as f:
+                old_map = json.load(f)
+                default_profiles["profiles"][0]["mapping"] = old_map
+        except Exception:
+            pass
+            
+    return default_profiles
 
-
-def save_mapping(mapping) -> bool:
+def save_profiles(profiles_data) -> bool:
+    """Saves the entire profiles structure."""
     try:
-        with open(MAPPING_FILE, "w") as f:
-            json.dump(mapping, f, indent=4)
+        with open(PROFILES_FILE, "w") as f:
+            json.dump(profiles_data, f, indent=4)
         return True
     except OSError as e:
-        print(f"Warning: Could not save mapping: {e}")
+        print(f"Warning: Could not save profiles: {e}")
         return False
 
+# Keep for backward compatibility with other modules if any, though gui.py will use profiles now
+def load_mapping():
+    data = load_profiles()
+    active_name = data.get("active_profile", "Default")
+    for p in data.get("profiles", []):
+        if p["name"] == active_name:
+            return p.get("mapping", DEFAULT_MAPPING.copy())
+    return DEFAULT_MAPPING.copy()
 
-CONFIG_FILE = os.path.join(_get_data_dir(), "config.json")
+def save_mapping(mapping) -> bool:
+    data = load_profiles()
+    active_name = data.get("active_profile", "Default")
+    for p in data.get("profiles", []):
+        if p["name"] == active_name:
+            p["mapping"] = mapping
+            return save_profiles(data)
+    # If active profile not found, add it
+    data.setdefault("profiles", []).append({
+        "name": active_name,
+        "exe_name": "",
+        "mapping": mapping
+    })
+    return save_profiles(data)
+
 
 def load_config():
     if os.path.exists(CONFIG_FILE):
@@ -84,4 +128,3 @@ def save_config(config) -> bool:
     except OSError as e:
         print(f"Warning: Could not save config: {e}")
         return False
-

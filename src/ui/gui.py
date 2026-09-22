@@ -7,15 +7,16 @@ from src.service.detector import DetectorService
 from src.model.models import DetectorResult
 from src.service.mapper import InputMapper
 import traceback
-from src.ui.mapping_utils import load_mapping, save_mapping
+from src.ui.mapping_utils import load_mapping, save_mapping, load_profiles, save_profiles
+from src.service.window_utils import get_active_window_exe
 
 class ControllerGUI:
     def __init__(self, root, service: DetectorService):
         self.root = root
         self.service = service
         self.root.title("GyroPad Desktop Host")
-        self.root.geometry("820x650")
-        self.root.minsize(700, 500)
+        self.root.geometry("820x720")
+        self.root.minsize(700, 580)
         
         self.device = None
         self.streaming = False
@@ -23,6 +24,7 @@ class ControllerGUI:
         self.l2_pressed_time = 0.0
         self.r2_pressed_time = 0.0
         self.queue = queue.Queue()
+        self.profiles_data = load_profiles()
         self.mapping = load_mapping()
         self._test_pad = None
         
@@ -31,6 +33,10 @@ class ControllerGUI:
         # Start looking for device
         self.refresh_device()
         self.root.after(100, self.process_queue)
+        
+        # Start background window monitor for profile switching
+        self.monitor_thread = threading.Thread(target=self.monitor_active_window, daemon=True)
+        self.monitor_thread.start()
         
     def create_widgets(self):
         # Top Frame: Device Connection & Controls
@@ -105,7 +111,7 @@ class ControllerGUI:
         self.btn_test_gamepad = ttk.Button(self.frame_middle, text="Test / Wake Gamepad", command=self.test_wake_gamepad)
         self.btn_test_gamepad.grid(row=0, column=2, padx=10, pady=5, sticky=tk.W)
         
-        ttk.Label(self.frame_middle, text="Profile:").grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
+        ttk.Label(self.frame_middle, text="Phone Orientation:").grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
         self.profile_var = tk.StringVar(value="landscape")
         self.profile_combo = ttk.Combobox(self.frame_middle, textvariable=self.profile_var, values=["landscape", "portrait", "standard"], state="readonly", width=14)
         self.profile_combo.grid(row=1, column=1, padx=5, pady=5, sticky=tk.W)
@@ -113,15 +119,25 @@ class ControllerGUI:
         self.btn_edit_map = ttk.Button(self.frame_middle, text="Edit Mapping", command=self.open_mapping_editor)
         self.btn_edit_map.grid(row=1, column=2, padx=10, pady=5, sticky=tk.W)
         
-        ttk.Label(self.frame_middle, text="Steering Deadzone:").grid(row=2, column=0, padx=5, pady=5, sticky=tk.W)
-        self.steer_deadzone = tk.DoubleVar(value=0.0)
-        self.scale_steer_dz = ttk.Scale(self.frame_middle, from_=0.0, to_=0.5, orient=tk.HORIZONTAL, variable=self.steer_deadzone)
-        self.scale_steer_dz.grid(row=2, column=1, padx=5, pady=5, sticky=tk.W)
+        # New Game Profile UI
+        ttk.Label(self.frame_middle, text="Game Profile:").grid(row=2, column=0, padx=5, pady=5, sticky=tk.W)
         
-        ttk.Label(self.frame_middle, text="Anti-Deadzone (Game Override):").grid(row=3, column=0, padx=5, pady=5, sticky=tk.W)
-        self.anti_deadzone = tk.DoubleVar(value=0.20)
-        self.scale_anti_dz = ttk.Scale(self.frame_middle, from_=0.0, to_=0.5, orient=tk.HORIZONTAL, variable=self.anti_deadzone)
-        self.scale_anti_dz.grid(row=3, column=1, padx=5, pady=5, sticky=tk.W)
+        self.game_profile_var = tk.StringVar(value=self.profiles_data.get("active_profile", "Default"))
+        profile_names = [p["name"] for p in self.profiles_data.get("profiles", [])]
+        self.game_profile_combo = ttk.Combobox(self.frame_middle, textvariable=self.game_profile_var, values=profile_names, state="readonly", width=28)
+        self.game_profile_combo.grid(row=2, column=1, padx=5, pady=5, sticky=tk.W)
+        self.game_profile_combo.bind("<<ComboboxSelected>>", self.on_game_profile_change)
+        
+        f_profile_btns = ttk.Frame(self.frame_middle)
+        f_profile_btns.grid(row=2, column=2, padx=10, pady=5, sticky=tk.W)
+        self.btn_manage_profiles = ttk.Button(f_profile_btns, text="Manage Profiles", command=self.open_profile_manager)
+        self.btn_manage_profiles.pack(side=tk.LEFT, padx=(0, 5))
+        
+        self.auto_switch_var = tk.BooleanVar(value=self.profiles_data.get("auto_switch", True))
+        self.chk_auto_switch = ttk.Checkbutton(f_profile_btns, text="Auto-Switch", variable=self.auto_switch_var, command=self.on_auto_switch_toggle)
+        self.chk_auto_switch.pack(side=tk.LEFT)
+        
+
         
         # Bottom Frame: Live Data
         self.frame_bottom = ttk.LabelFrame(self.root, text="Live Output")
@@ -284,10 +300,179 @@ class ControllerGUI:
         
         self.root.after(100, self.process_queue)
         
+
+    def apply_profile_calibration(self):
+        active_name = self.game_profile_var.get()
+        for p in self.profiles_data.get("profiles", []):
+            if p["name"] == active_name:
+                accel = p.get("accel_offset", [0.0, 0.0, 0.0])
+                gyro = p.get("gyro_offset", [0.0, 0.0, 0.0])
+                self.mapper.set_calibration(accel, gyro)
+                break
+                
+    def on_game_profile_change(self, event=None):
+        new_active = self.game_profile_var.get()
+        self.profiles_data["active_profile"] = new_active
+        save_profiles(self.profiles_data)
+        self.mapping = load_mapping()
+        self.apply_profile_calibration()
+        self.log(f"Switched active game profile to: {new_active}")
+        
+    def on_auto_switch_toggle(self):
+        self.profiles_data["auto_switch"] = self.auto_switch_var.get()
+        save_profiles(self.profiles_data)
+        
+    def monitor_active_window(self):
+        last_exe = None
+        while True:
+            time.sleep(1.0)
+            if not self.auto_switch_var.get():
+                continue
+                
+            exe_name = get_active_window_exe()
+            if exe_name and exe_name != last_exe:
+                last_exe = exe_name
+                # Check if this exe matches any profile
+                for p in self.profiles_data.get("profiles", []):
+                    target = p.get("exe_name", "")
+                    if target and target.lower() == exe_name.lower():
+                        current = self.game_profile_var.get()
+                        if current != p["name"]:
+                            self.root.after(0, self.switch_profile_from_background, p["name"], exe_name)
+                        break
+
+    def switch_profile_from_background(self, profile_name, exe_name):
+        self.game_profile_var.set(profile_name)
+        self.profiles_data["active_profile"] = profile_name
+        save_profiles(self.profiles_data)
+        self.mapping = load_mapping()
+        self.apply_profile_calibration()
+        self.log(f"Auto-switched to profile '{profile_name}' (Detected {exe_name})")
+
+    def open_profile_manager(self):
+        pm = tk.Toplevel(self.root)
+        pm.title("Manage Game Profiles")
+        pm.geometry("400x300")
+        
+        ttk.Label(pm, text="Profiles:").pack(pady=5)
+        
+        listbox = tk.Listbox(pm, width=40, height=8)
+        listbox.pack(pady=5)
+        
+        def refresh_list():
+            listbox.delete(0, tk.END)
+            for p in self.profiles_data.get("profiles", []):
+                exe = p.get("exe_name", "")
+                display = f"{p['name']} [{exe}]" if exe else p['name']
+                listbox.insert(tk.END, display)
+                
+        refresh_list()
+        
+        def new_profile():
+            import tkinter.simpledialog as sd
+            name = sd.askstring("New Profile", "Enter profile name:", parent=pm)
+            if not name: return
+            exe = sd.askstring("New Profile", "Enter executable name (e.g. game.exe) or leave blank:", parent=pm)
+            if exe is None: exe = ""
+            
+            # Copy default mapping for new profile
+            from src.ui.mapping_utils import DEFAULT_MAPPING
+            self.profiles_data["profiles"].append({
+                "name": name,
+                "exe_name": exe.strip(),
+                "mapping": DEFAULT_MAPPING.copy()
+            })
+            save_profiles(self.profiles_data)
+            refresh_list()
+            self.game_profile_combo['values'] = [p["name"] for p in self.profiles_data.get("profiles", [])]
+            
+        def delete_profile():
+            sel = listbox.curselection()
+            if not sel: return
+            idx = sel[0]
+            p_name = self.profiles_data["profiles"][idx]["name"]
+            if p_name == "Default":
+                from tkinter import messagebox
+                messagebox.showerror("Error", "Cannot delete Default profile.")
+                return
+                
+            del self.profiles_data["profiles"][idx]
+            if self.profiles_data["active_profile"] == p_name:
+                self.profiles_data["active_profile"] = "Default"
+                self.game_profile_var.set("Default")
+                self.mapping = load_mapping()
+                
+            save_profiles(self.profiles_data)
+            refresh_list()
+            self.game_profile_combo['values'] = [p["name"] for p in self.profiles_data.get("profiles", [])]
+            
+        def export_profile():
+            sel = listbox.curselection()
+            if not sel: return
+            idx = sel[0]
+            p_data = self.profiles_data["profiles"][idx]
+            from tkinter import filedialog, messagebox
+            f_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")], initialfile=f"{p_data['name']}.json", parent=pm)
+            if f_path:
+                try:
+                    import json
+                    with open(f_path, "w") as out_f:
+                        json.dump(p_data, out_f, indent=4)
+                    messagebox.showinfo("Export", "Profile exported successfully.")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Could not export: {e}")
+
+        def import_profile():
+            from tkinter import filedialog, messagebox
+            f_path = filedialog.askopenfilename(filetypes=[("JSON files", "*.json")], parent=pm)
+            if f_path:
+                try:
+                    import json
+                    with open(f_path, "r") as in_f:
+                        p_data = json.load(in_f)
+                    if "name" in p_data and "mapping" in p_data:
+                        # Append a unique name if exists
+                        base_name = p_data["name"]
+                        existing_names = [p["name"] for p in self.profiles_data.get("profiles", [])]
+                        new_name = base_name
+                        counter = 1
+                        while new_name in existing_names:
+                            new_name = f"{base_name} ({counter})"
+                            counter += 1
+                        
+                        p_data["name"] = new_name
+                        self.profiles_data.setdefault("profiles", []).append(p_data)
+                        save_profiles(self.profiles_data)
+                        refresh_list()
+                        self.game_profile_combo['values'] = [p["name"] for p in self.profiles_data.get("profiles", [])]
+                        messagebox.showinfo("Import", f"Imported profile '{new_name}'.")
+                    else:
+                        messagebox.showerror("Error", "Invalid profile format.")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Could not import: {e}")
+
+        f_btns = ttk.Frame(pm)
+        f_btns.pack(pady=5)
+        ttk.Button(f_btns, text="New Profile", command=new_profile).pack(side=tk.LEFT, padx=5)
+        ttk.Button(f_btns, text="Delete Selected", command=delete_profile).pack(side=tk.LEFT, padx=5)
+        
+        f_io_btns = ttk.Frame(pm)
+        f_io_btns.pack(pady=5)
+        ttk.Button(f_io_btns, text="Import Profile", command=import_profile).pack(side=tk.LEFT, padx=5)
+        ttk.Button(f_io_btns, text="Export Selected", command=export_profile).pack(side=tk.LEFT, padx=5)
+
     def calibrate(self):
         if self.streaming:
             self.mapper.set_calibration(self.last_raw_accel, self.last_raw_gyro)
-            self.log("Calibrated neutral position.")
+            
+            active_name = self.game_profile_var.get()
+            for p in self.profiles_data.get("profiles", []):
+                if p["name"] == active_name:
+                    p["accel_offset"] = self.mapper.accel_offset
+                    p["gyro_offset"] = self.mapper.gyro_offset
+                    break
+            save_profiles(self.profiles_data)
+            self.log(f"Calibrated neutral position & saved to profile '{active_name}'.")
         else:
             self.log("Must be streaming to calibrate.")
             
@@ -372,6 +557,8 @@ class ControllerGUI:
 
         self.log(f"Starting stream for {self.device.serial}...")
         
+        self.apply_profile_calibration()
+        
         s = None
         is_wifi = False
         
@@ -407,17 +594,15 @@ class ControllerGUI:
             
             # Phase 7: Virtual Controller (vgamepad)
             is_ps = self.controller_type_var.get().startswith("PlayStation")
-            if self._test_pad is not None:
-                try:
-                    self._test_pad.reset()   # Bug #7: release all buttons before GC
-                    self._test_pad.update()
-                except Exception:
-                    pass
-                self._test_pad = None
-
+            
             try:
                 import vgamepad as vg
-                gamepad = vg.VDS4Gamepad() if is_ps else vg.VX360Gamepad()
+                if self._test_pad is not None:
+                    # Reuse the test pad so Windows/Chrome doesn't see a disconnect
+                    gamepad = self._test_pad
+                    # We still keep self._test_pad alive
+                else:
+                    gamepad = vg.VDS4Gamepad() if is_ps else vg.VX360Gamepad()
                 vg_available = True
                 pad_name = "PlayStation (DualShock 4 / PS5)" if is_ps else "Xbox 360"
                 self.log(f"Virtual {pad_name} controller initialized.")
@@ -542,8 +727,7 @@ class ControllerGUI:
                                             self.mapper = InputMapper(mode=self.profile_var.get())
                                             self.mapper.set_calibration(old_accel, old_gyro)
                                             
-                                        self.mapper.steering.deadzone = self.steer_deadzone.get()
-                                        self.mapper.steering.anti_deadzone = self.anti_deadzone.get()
+
                                         
                                         # Mouse control via Touchpad
                                         if has_mouse_api:
@@ -658,6 +842,10 @@ class ControllerGUI:
                                                 
                                                 lt_val = 0.0
                                                 rt_val = 0.0
+                                                
+                                                # Aggregate digital buttons to prevent duplicate-mapping conflicts
+                                                xbox_buttons_pressed = set()
+                                                
                                                 for f_btn, x_btn in self.mapping.items():
                                                     is_pressed = bool(buttons.get(f_btn))
                                                     if x_btn == "LEFT_TRIGGER":
@@ -667,17 +855,22 @@ class ControllerGUI:
                                                         if f_btn == 'R2': rt_val = final_rt
                                                         elif is_pressed: rt_val = 1.0
                                                     elif x_btn != "NONE" and hasattr(vg.XUSB_BUTTON, x_btn):
-                                                        btn_val = getattr(vg.XUSB_BUTTON, x_btn)
-                                                        if is_pressed: gamepad.press_button(button=btn_val)
-                                                        else: gamepad.release_button(button=btn_val)
+                                                        if is_pressed:
+                                                            xbox_buttons_pressed.add(x_btn)
+                                                            
+                                                # Apply all digital buttons
+                                                for x_btn in [b for b in dir(vg.XUSB_BUTTON) if b.startswith('XUSB_GAMEPAD')]:
+                                                    btn_val = getattr(vg.XUSB_BUTTON, x_btn)
+                                                    if x_btn in xbox_buttons_pressed:
+                                                        gamepad.press_button(button=btn_val)
+                                                    else:
+                                                        gamepad.release_button(button=btn_val)
                                                         
                                                 gamepad.left_trigger_float(value_float=lt_val)
                                                 gamepad.right_trigger_float(value_float=rt_val)
                                                 gamepad.update()
                                             
-                                        # Print minimal status instead of full flood
-                                        if int(now * 10) % 5 == 0:  # Update log ~2 times a sec
-                                            self.log(f"LStick: {final_lx:.2f}, {final_ly:.2f} | RStick: {rx:.2f}, {ry:.2f}")
+
                                     except json.JSONDecodeError:
                                         pass
     

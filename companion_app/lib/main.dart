@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 
 void main() {
@@ -72,6 +73,10 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
   double _rightStickY = 0.0;
   double _touchpadDeltaX = 0.0;
   double _touchpadDeltaY = 0.0;
+  
+  // Theme State
+  String _activeTheme = 'ps5'; // ps5, xbox, switch, custom
+  String? _customImagePath;
 
   final Map<String, bool> _buttons = {
     'Cross': false,
@@ -104,7 +109,37 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
     _pin = (1000 + Random().nextInt(9000)).toString();
     _startServer();
     _startSensors();
+    _loadTheme();
     _initializeUpdateChecker();
+  }
+
+  Future<void> _loadTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _activeTheme = prefs.getString('theme') ?? 'ps5';
+      _customImagePath = prefs.getString('custom_bg');
+    });
+  }
+
+  Future<void> _setTheme(String theme) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('theme', theme);
+    setState(() {
+      _activeTheme = theme;
+    });
+  }
+
+  Future<void> _pickCustomBackground() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery);
+    if (file != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('custom_bg', file.path);
+      await _setTheme('custom');
+      setState(() {
+        _customImagePath = file.path;
+      });
+    }
   }
 
   Future<void> _initializeUpdateChecker() async {
@@ -375,7 +410,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
         width: 50,
         height: 50,
         decoration: BoxDecoration(
-          color: isPressed ? glowColor.withValues(alpha: 0.1) : Colors.white,
+          color: isPressed ? glowColor.withValues(alpha:  0.1) : Colors.white,
           shape: BoxShape.circle,
           border: Border.all(
             color: isPressed ? glowColor : Colors.grey.shade300,
@@ -383,7 +418,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
           ),
           boxShadow: [
             BoxShadow(
-              color: isPressed ? glowColor.withValues(alpha: 0.3) : Colors.black12,
+              color: isPressed ? glowColor.withValues(alpha:  0.3) : Colors.black12,
               blurRadius: isPressed ? 10 : 4,
               offset: isPressed ? Offset.zero : const Offset(2, 2),
             )
@@ -417,7 +452,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
         width: 45,
         height: 45,
         decoration: BoxDecoration(
-          color: isPressed ? glowColor.withValues(alpha: 0.1) : Colors.white,
+          color: isPressed ? glowColor.withValues(alpha:  0.1) : Colors.white,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isPressed ? glowColor : Colors.grey.shade300,
@@ -425,7 +460,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
           ),
           boxShadow: [
             BoxShadow(
-              color: isPressed ? glowColor.withValues(alpha: 0.3) : Colors.black12,
+              color: isPressed ? glowColor.withValues(alpha:  0.3) : Colors.black12,
               blurRadius: isPressed ? 10 : 4,
               offset: isPressed ? Offset.zero : const Offset(2, 2),
             )
@@ -521,7 +556,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
             ),
             if (isPressed)
               BoxShadow(
-                color: const Color(0xFF00439C).withValues(alpha: 0.5),
+                color: const Color(0xFF00439C).withValues(alpha:  0.5),
                 blurRadius: 15,
                 spreadRadius: 2,
               )
@@ -558,8 +593,12 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
   // Shoulders L1/L2 R1/R2 (Top edges)
   Widget _buildShoulderButton(String key, String label, {bool isL2R2 = false, bool isLeft = true}) {
     bool isPressed = _buttons[key]!;
-    Color glowColor = const Color(0xFF00439C);
+    Color glowColor = _activeTheme == 'xbox' ? const Color(0xFF107C10) : (_activeTheme == 'switch' ? (isLeft ? const Color(0xFF00A2D6) : const Color(0xFFE60012)) : const Color(0xFF00439C));
     
+    // Fix L1/R1 being "greyed out" on white background
+    Color btnColor = _activeTheme == 'ps5' ? (isL2R2 ? const Color(0xFFF5F5F7) : const Color(0xFFDDDDDD)) : const Color(0xFF222222);
+    Color textColor = _activeTheme == 'ps5' ? Colors.black87 : Colors.white70;
+
     return Listener(
       onPointerDown: (_) => setState(() => _buttons[key] = true),
       onPointerUp: (_) => setState(() => _buttons[key] = false),
@@ -569,7 +608,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
         width: 90,
         height: isL2R2 ? 40 : 35,
         decoration: BoxDecoration(
-          color: isPressed ? glowColor.withValues(alpha: 0.15) : (isL2R2 ? const Color(0xFFF5F5F7) : Colors.white),
+          color: isPressed ? glowColor.withValues(alpha: 0.3) : btnColor,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(isLeft ? (isL2R2 ? 16 : 8) : 4),
             topRight: Radius.circular(!isLeft ? (isL2R2 ? 16 : 8) : 4),
@@ -577,22 +616,15 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
             bottomRight: Radius.circular(!isLeft ? 4 : 4),
           ),
           border: Border.all(
-            color: isPressed ? glowColor : Colors.grey.shade400,
+            color: isPressed ? glowColor : (_activeTheme == 'ps5' ? Colors.black26 : Colors.white24),
             width: isPressed ? 2.0 : 1.0,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: isPressed ? glowColor.withValues(alpha: 0.3) : Colors.black12,
-              blurRadius: isPressed ? 8 : 2,
-              offset: const Offset(0, 2),
-            )
-          ],
         ),
         child: Center(
           child: Text(
             label,
             style: TextStyle(
-              color: isPressed ? glowColor : Colors.grey.shade800,
+              color: isPressed ? glowColor : textColor,
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
@@ -631,7 +663,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
             ),
             boxShadow: [
               BoxShadow(
-                color: isPressed ? glowColor.withValues(alpha: 0.4) : Colors.black12,
+                color: isPressed ? glowColor.withValues(alpha:  0.4) : Colors.black12,
                 blurRadius: isPressed ? 20 : 6,
                 spreadRadius: isPressed ? 2 : 0,
                 offset: const Offset(0, 4),
@@ -647,7 +679,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                   height: 4,
                   decoration: BoxDecoration(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                    color: isPressed ? glowColor : glowColor.withValues(alpha: 0.3),
+                    color: isPressed ? glowColor : glowColor.withValues(alpha:  0.3),
                     boxShadow: [
                       BoxShadow(color: glowColor, blurRadius: isPressed ? 10 : 5, spreadRadius: 1)
                     ],
@@ -686,14 +718,14 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
         width: 18,
         height: 35,
         decoration: BoxDecoration(
-          color: isPressed ? glowColor.withValues(alpha: 0.2) : Colors.white,
+          color: isPressed ? glowColor.withValues(alpha:  0.2) : Colors.white,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isPressed ? glowColor : Colors.grey.shade400,
             width: 1.5,
           ),
           boxShadow: [
-            if (isPressed) BoxShadow(color: glowColor.withValues(alpha: 0.4), blurRadius: 6, spreadRadius: 1)
+            if (isPressed) BoxShadow(color: glowColor.withValues(alpha:  0.4), blurRadius: 6, spreadRadius: 1)
             else const BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(1, 1))
           ],
         ),
@@ -762,11 +794,11 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
         width: 32,
         height: 14,
         decoration: BoxDecoration(
-          color: isPressed ? Colors.orange.withValues(alpha: 0.9) : Colors.black87,
+          color: isPressed ? Colors.orange.withValues(alpha:  0.9) : Colors.black87,
           borderRadius: BorderRadius.circular(8),
           boxShadow: [
             if (isPressed)
-              BoxShadow(color: Colors.orange.withValues(alpha: 0.6), blurRadius: 6, spreadRadius: 1)
+              BoxShadow(color: Colors.orange.withValues(alpha:  0.6), blurRadius: 6, spreadRadius: 1)
             else
               const BoxShadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1))
           ],
@@ -830,13 +862,40 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                     title: const Text("Hold & Ramp Triggers"),
                     subtitle: const Text("L2/R2 simulate analog press over 0.5s"),
                     value: _analogTriggers,
-                    activeColor: const Color(0xFF00439C),
+                    activeThumbColor: const Color(0xFF00439C),
                     contentPadding: EdgeInsets.zero,
                     onChanged: (val) {
                       setDialogState(() => _analogTriggers = val);
                       setState(() => _analogTriggers = val);
                     },
                   ),
+                  const Divider(),
+                  const Text("Controller Theme", style: TextStyle(fontWeight: FontWeight.bold)),
+                  DropdownButton<String>(
+                    value: _activeTheme,
+                    isExpanded: true,
+                    items: const [
+                      DropdownMenuItem(value: 'ps5', child: Text('PS5 (Light)')),
+                      DropdownMenuItem(value: 'xbox', child: Text('Xbox (Dark Green)')),
+                      DropdownMenuItem(value: 'switch', child: Text('Switch (Neon Red/Blue)')),
+                      DropdownMenuItem(value: 'custom', child: Text('Custom Background')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setDialogState(() => _activeTheme = val);
+                        _setTheme(val);
+                      }
+                    },
+                  ),
+                  if (_activeTheme == 'custom')
+                    ElevatedButton.icon(
+                      onPressed: () {
+                         _pickCustomBackground();
+                         Navigator.pop(context);
+                      },
+                      icon: const Icon(Icons.image),
+                      label: const Text("Pick Background Image"),
+                    ),
                 ],
               ),
               actions: [
@@ -934,9 +993,9 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: isConnected ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+                      color: isConnected ? Colors.green.withValues(alpha:  0.1) : Colors.red.withValues(alpha:  0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: isConnected ? Colors.green.withValues(alpha: 0.5) : Colors.red.withValues(alpha: 0.5)),
+                      border: Border.all(color: isConnected ? Colors.green.withValues(alpha:  0.5) : Colors.red.withValues(alpha:  0.5)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -967,7 +1026,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                     width: 200,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: Colors.white.withValues(alpha:  0.9),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.grey.shade300),
                       boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],

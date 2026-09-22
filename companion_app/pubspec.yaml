@@ -41,6 +41,7 @@ dependencies:
   battery_plus: ^7.1.1
   mobile_scanner: ^7.4.2
   vibration: ^3.2.1
+  image_picker: ^1.2.3
 
 dev_dependencies:
   flutter_test:

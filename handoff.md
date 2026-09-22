@@ -80,7 +80,7 @@
 * [x] **ViGEmBus & PlayStation Verification:** Virtual Sony DualShock 4 / PS5 controller confirmed active (`0x054C:0x05C4`).
 * [ ] Push to GitHub (`git push origin main`) and optionally attach release assets to `v1.0.0`.
 * [ ] Deploy to Vercel by importing `Rushabh1697/controller-app` on [vercel.com](https://vercel.com). Root `vercel.json` will automatically publish `website/`.
-* [ ] Run desktop host GUI, enter 4-digit PIN, and test steering & triggers live in F1 2022.
+* [x] Run desktop host GUI, enter 4-digit PIN, and test steering & triggers live in F1 2022.
 
 ---
 
@@ -267,16 +267,22 @@ When navigating to `https://github.com/Rushabh1697/controller-app/blob/main/Rele
 ## 8. Planned Future Features
 
 1. **Multiple Controller Skin Themes**: Provide different visual layouts (PS5, Xbox, Switch) and allow custom image uploads for the UI.
-2. **Per-Game Profile Auto-Switching**: Background Windows monitor to automatically swap control profiles depending on the focused game window.
-3. **Profile Import / Export**: Save and load .json profiles for sharing game configurations.
 
 ## 9. Recent Fixes & Additions (v1.2.0 Release - September 22, 2026)
 - **QR Code Pairing (PC Side Completed)**: Added a "📱 QR Pair" button to the PC app that generates a QR code and starts a temporary pairing server (`port 5051`).
 - **Battery % Notification (PC Side Completed)**: The PC now parses incoming telemetry for a `battery` key and triggers native Windows Toast Notifications when it drops below 20%, 10%, and 5%.
 - **Vibration/Haptic Feedback (PC Side Completed)**: Wired into `vgamepad`'s native rumble callbacks. PC captures motor intensity and forwards a TCP `VIB:{duration}\n` packet to the phone.
-- **Anti-Deadzone (Game Override):** Added an anti-deadzone algorithm to `mapper.py` and a UI slider to instantly boost small steering movements past the 15-20% deadzone baked into most PC games, completely eliminating the "deadzone feeling".
 - **Hold & Ramp Analog Triggers:** Added time-based ramping logic for L2 and R2 in `gui.py`. Added a Settings toggle in the Flutter app to simulate smooth analog trigger pulls over 0.5 seconds instead of instant digital 100% presses.
 - **Touchpad Tap Reliability Fix**: Upgraded the Touchpad hit detection in the Flutter app to use a raw pointer `Listener`. 
 - **Auto-Reconnect on Drop**: Implemented a resilient outer `while` loop in `gui.py`'s `stream_loop()`.
 - **Connection History (Last Used IP)**: The PC host now automatically saves the last successfully used Wi-Fi IP in `config.json`.
 - **Bluetooth PAN IP & "Disconnected" UX Fixes:** Improved `ipconfig` parsing and added explicit Windows Settings instructions for PAN tethering.
+
+## 10. Recent Fixes & Additions (v1.3.0 - September 23, 2026)
+- **Multiple Controller Skin Themes (Flutter App)**: Added a dynamic Theme Manager supporting PS5 (Light), Xbox (Dark Green), and Nintendo Switch (Neon Red/Blue) layouts. Also added a Custom Theme option that allows users to pick an image from their gallery as the background using `image_picker`.
+- **Xbox Duplicate Mapping Bug Fix**: Rewrote the digital button aggregator for `vgamepad` in the Python Host to guarantee that duplicate physical mappings (e.g., PS and GP both mapped to Guide) do not accidentally cancel each other out in the same frame.
+- **QR Code & PyInstaller Fixes**: Bundled `qrcode` and `vigemclient.dll` directly into the `--noconsole` executable.
+- **Deadzone Removal & Persistent Hardware Calibration**: Completely removed all Deadzone and Anti-Deadzone algorithms from `mapper.py` and the UI to provide raw 1:1 steering input. Hardware sensor biases and resting phone tilts are now mathematically eliminated by pressing the "Calibrate Neutral" button, which permanently saves your desk's perfect `0.000` hardware offset directly into your active Game Profile.
+- **Per-Game Profile Auto-Switching (PC Side Completed)**: Integrated Windows active window detection using `ctypes`. The PC host now monitors the focused `.exe` and automatically swaps to the corresponding controller profile.
+- **Profile Import / Export (PC Side Completed)**: Added a Manage Profiles GUI in Tkinter. Users can create, delete, import, and export `.json` mapping profiles.
+- **Unified Profile Storage**: Migrated `mapping.json` to a robust `profiles.json` which supports multiple profiles, executable names, and auto-switching toggles while remaining backward compatible.
