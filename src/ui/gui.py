@@ -137,8 +137,15 @@ class ControllerGUI:
         self.chk_auto_switch = ttk.Checkbutton(f_profile_btns, text="Auto-Switch", variable=self.auto_switch_var, command=self.on_auto_switch_toggle)
         self.chk_auto_switch.pack(side=tk.LEFT)
         
+        # Vibration Filter
+        self.block_small_motor_var = tk.BooleanVar(value=True)
+        self.chk_block_small_motor = ttk.Checkbutton(
+            self.frame_middle, 
+            text="Block continuous engine/brake vibrations (Racing Games)", 
+            variable=self.block_small_motor_var
+        )
+        self.chk_block_small_motor.grid(row=3, column=0, columnspan=3, padx=5, pady=5, sticky=tk.W)
 
-        
         # Bottom Frame: Live Data
         self.frame_bottom = ttk.LabelFrame(self.root, text="Live Output")
         self.frame_bottom.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
@@ -627,15 +634,34 @@ class ControllerGUI:
                     s.connect((target_ip, 5050))
                     
                     if vg_available and gamepad:
+                        self.last_rumble_time = 0
+                        self.is_rumbling = False
+                        
+                        self.pending_vib_duration = None
+                        
                         def rumble_cb(client, target, large_motor, small_motor, led_number, user_data):
-                            if (large_motor > 0 or small_motor > 0) and getattr(self, 'streaming', False):
-                                try:
-                                    # Send vibration command (duration in ms based on motor intensity)
+                            if not getattr(self, 'streaming', False): return
+                            try:
+                                import time
+                                current_time = time.time()
+                                
+                                if getattr(self, 'block_small_motor_var', None) and self.block_small_motor_var.get():
+                                    intensity = large_motor
+                                else:
                                     intensity = max(large_motor, small_motor)
-                                    duration = int((intensity / 255.0) * 200) # up to 200ms per trigger
-                                    s.sendall(f"VIB:{duration}\n".encode('utf-8'))
-                                except Exception:
-                                    pass
+                                
+                                if intensity > 0:
+                                    if current_time - getattr(self, 'last_rumble_time', 0) > 0.25:
+                                        duration = int((intensity / 255.0) * 300)
+                                        self.pending_vib_duration = duration
+                                        self.last_rumble_time = current_time
+                                        self.is_rumbling = True
+                                elif getattr(self, 'is_rumbling', False):
+                                    self.pending_vib_duration = 0
+                                    self.is_rumbling = False
+                                    self.last_rumble_time = current_time
+                            except Exception:
+                                pass
                         try:
                             gamepad.register_notification(callback_function=rumble_cb)
                         except Exception as e:
@@ -692,7 +718,12 @@ class ControllerGUI:
                     now = time.time()
                     if now - last_ping > 0.01:
                         try:
-                            s.sendall(b"ping\n")
+                            if getattr(self, 'pending_vib_duration', None) is not None:
+                                duration = self.pending_vib_duration
+                                self.pending_vib_duration = None
+                                s.sendall(f"VIB:{duration}\n".encode('utf-8'))
+                            else:
+                                s.sendall(b"ping\n")
                         except Exception:
                             break # Break inner loop to trigger reconnect
                         last_ping = now

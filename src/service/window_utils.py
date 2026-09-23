@@ -1,14 +1,21 @@
+import sys
 import ctypes
-from ctypes import wintypes
 import os
 
-kernel32 = ctypes.windll.kernel32
-user32 = ctypes.windll.user32
+if sys.platform == 'win32':
+    from ctypes import wintypes
+    kernel32 = ctypes.windll.kernel32
+    user32 = ctypes.windll.user32
+else:
+    kernel32 = None
+    user32 = None
 
 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 
 def get_active_window_exe():
     """Returns the executable name of the currently focused window on Windows."""
+    if user32 is None or kernel32 is None:
+        return None
     hwnd = user32.GetForegroundWindow()
     if not hwnd:
         return None

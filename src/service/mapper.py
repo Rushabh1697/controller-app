@@ -20,7 +20,10 @@ class AxisMapper:
             raw_val = -raw_val
             
         # 1. Normalize to [-1.0, 1.0] range
-        norm = raw_val / self.max_val
+        if self.max_val == 0.0:
+            norm = 0.0
+        else:
+            norm = raw_val / self.max_val
         norm = max(-1.0, min(1.0, norm))
         
         # 2. Apply Sensitivity

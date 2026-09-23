@@ -9,6 +9,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:vibration/vibration.dart';
+import 'package:palette_generator/palette_generator.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -66,6 +68,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
   bool _showDebug = false;
   double _gyroSensitivity = 1.0;
   bool _analogTriggers = false;
+  bool _enableVibration = true;
 
   double _leftStickX = 0.0;
   double _leftStickY = 0.0;
@@ -77,6 +80,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
   // Theme State
   String _activeTheme = 'ps5'; // ps5, xbox, switch, custom
   String? _customImagePath;
+  bool _isCustomImageLight = false;
 
   final Map<String, bool> _buttons = {
     'Cross': false,
@@ -113,12 +117,35 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
     _initializeUpdateChecker();
   }
 
+  Future<void> _updateImagePalette() async {
+    if (_customImagePath == null) return;
+    try {
+      final palette = await PaletteGenerator.fromImageProvider(
+        FileImage(File(_customImagePath!)),
+        maximumColorCount: 5,
+      );
+      final Color? dominant = palette.dominantColor?.color ?? palette.lightVibrantColor?.color ?? palette.darkVibrantColor?.color;
+      if (dominant != null) {
+        if (mounted) {
+          setState(() {
+            _isCustomImageLight = dominant.computeLuminance() > 0.5;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Palette generation failed: $e");
+    }
+  }
+
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _activeTheme = prefs.getString('theme') ?? 'ps5';
       _customImagePath = prefs.getString('custom_bg');
     });
+    if (_activeTheme == 'custom') {
+      _updateImagePalette();
+    }
   }
 
   Future<void> _setTheme(String theme) async {
@@ -139,7 +166,18 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
       setState(() {
         _customImagePath = file.path;
       });
+      _updateImagePalette();
     }
+  }
+
+  Future<void> _removeCustomBackground() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('custom_bg');
+    await _setTheme('ps5');
+    setState(() {
+      _customImagePath = null;
+      _isCustomImageLight = false;
+    });
   }
 
   Future<void> _initializeUpdateChecker() async {
@@ -326,6 +364,19 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
               }
             } else if (message.toLowerCase() == 'ping') {
               _sendSampleToClient(client);
+            } else if (message.startsWith('VIB:')) {
+              try {
+                final int durationMs = int.parse(message.substring(4));
+                Vibration.hasVibrator().then((hasVibrator) {
+                  if (hasVibrator == true) {
+                    if (durationMs == 0) {
+                      Vibration.cancel();
+                    } else if (_enableVibration) {
+                      Vibration.vibrate(duration: durationMs);
+                    }
+                  }
+                });
+              } catch (_) {}
             }
           }
 
@@ -410,15 +461,15 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
         width: 50,
         height: 50,
         decoration: BoxDecoration(
-          color: isPressed ? glowColor.withValues(alpha:  0.1) : Colors.white,
+          color: isPressed ? glowColor.withValues(alpha:  0.1) : (_activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.15)) : Colors.white),
           shape: BoxShape.circle,
           border: Border.all(
-            color: isPressed ? glowColor : Colors.grey.shade300,
+            color: isPressed ? glowColor : (_activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.3)) : Colors.grey.shade300),
             width: isPressed ? 2.5 : 1.0,
           ),
           boxShadow: [
             BoxShadow(
-              color: isPressed ? glowColor.withValues(alpha:  0.3) : Colors.black12,
+              color: isPressed ? glowColor.withValues(alpha:  0.3) : (_activeTheme == 'custom' ? Colors.black12.withValues(alpha: 0.05) : Colors.black12),
               blurRadius: isPressed ? 10 : 4,
               offset: isPressed ? Offset.zero : const Offset(2, 2),
             )
@@ -428,7 +479,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
           child: Text(
             symbol,
             style: TextStyle(
-              color: isPressed ? glowColor : Colors.grey.shade600,
+              color: isPressed ? glowColor : (_activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black87 : Colors.white) : Colors.grey.shade600),
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
@@ -452,15 +503,15 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
         width: 45,
         height: 45,
         decoration: BoxDecoration(
-          color: isPressed ? glowColor.withValues(alpha:  0.1) : Colors.white,
+          color: isPressed ? glowColor.withValues(alpha:  0.1) : (_activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.15)) : Colors.white),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isPressed ? glowColor : Colors.grey.shade300,
+            color: isPressed ? glowColor : (_activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.3)) : Colors.grey.shade300),
             width: isPressed ? 2.0 : 1.0,
           ),
           boxShadow: [
             BoxShadow(
-              color: isPressed ? glowColor.withValues(alpha:  0.3) : Colors.black12,
+              color: isPressed ? glowColor.withValues(alpha:  0.3) : (_activeTheme == 'custom' ? Colors.transparent : Colors.black12),
               blurRadius: isPressed ? 10 : 4,
               offset: isPressed ? Offset.zero : const Offset(2, 2),
             )
@@ -471,7 +522,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
             angle: ang ?? 0,
             child: Icon(
               iconData,
-              color: isPressed ? glowColor : Colors.grey.shade600,
+              color: isPressed ? glowColor : (_activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black87 : Colors.white) : Colors.grey.shade600),
               size: 28,
             ),
           ),
@@ -534,23 +585,28 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
           _buttons[key] = false;
         });
       },
-      onTapDown: (_) => setState(() => _buttons[key] = true),
-      onTapUp: (_) => setState(() => _buttons[key] = false),
-      onTapCancel: () => setState(() => _buttons[key] = false),
+      onTap: () {
+        setState(() => _buttons[key] = true);
+        Future.delayed(const Duration(milliseconds: 150), () {
+          if (mounted) setState(() => _buttons[key] = false);
+        });
+      },
+      onLongPressStart: (_) => setState(() => _buttons[key] = true),
+      onLongPressEnd: (_) => setState(() => _buttons[key] = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 50),
         width: 80,
         height: 80,
         decoration: BoxDecoration(
-          color: const Color(0xFF2B2B2B), // Dark grey thumbstick
+          color: _activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.1)) : const Color(0xFF2B2B2B),
           shape: BoxShape.circle,
           border: Border.all(
-            color: isPressed ? const Color(0xFF00439C) : const Color(0xFF1E1E1E),
+            color: isPressed ? const Color(0xFF00439C) : (_activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.3)) : const Color(0xFF1E1E1E)),
             width: isPressed ? 3.0 : 2.0,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black45,
+              color: _activeTheme == 'custom' ? Colors.transparent : Colors.black45,
               blurRadius: isPressed ? 4 : 10,
               offset: isPressed ? const Offset(1, 1) : const Offset(4, 4),
             ),
@@ -569,15 +625,15 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: const Color(0xFF353535),
+                color: _activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.2)) : const Color(0xFF353535),
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF222222), width: 1),
+                border: Border.all(color: _activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.4)) : const Color(0xFF222222), width: 1),
               ),
               child: Center(
                 child: Text(
                   key,
-                  style: const TextStyle(
-                    color: Colors.white38,
+                  style: TextStyle(
+                    color: _activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black87 : Colors.white70) : Colors.white38,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
@@ -596,8 +652,8 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
     Color glowColor = _activeTheme == 'xbox' ? const Color(0xFF107C10) : (_activeTheme == 'switch' ? (isLeft ? const Color(0xFF00A2D6) : const Color(0xFFE60012)) : const Color(0xFF00439C));
     
     // Fix L1/R1 being "greyed out" on white background
-    Color btnColor = _activeTheme == 'ps5' ? (isL2R2 ? const Color(0xFFF5F5F7) : const Color(0xFFDDDDDD)) : const Color(0xFF222222);
-    Color textColor = _activeTheme == 'ps5' ? Colors.black87 : Colors.white70;
+    Color btnColor = _activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.15)) : (_activeTheme == 'ps5' ? (isL2R2 ? const Color(0xFFF5F5F7) : const Color(0xFFDDDDDD)) : const Color(0xFF222222));
+    Color textColor = _activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black87 : Colors.white) : (_activeTheme == 'ps5' ? Colors.black87 : Colors.white70);
 
     return Listener(
       onPointerDown: (_) => setState(() => _buttons[key] = true),
@@ -616,7 +672,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
             bottomRight: Radius.circular(!isLeft ? 4 : 4),
           ),
           border: Border.all(
-            color: isPressed ? glowColor : (_activeTheme == 'ps5' ? Colors.black26 : Colors.white24),
+            color: isPressed ? glowColor : (_activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.3)) : (_activeTheme == 'ps5' ? Colors.black26 : Colors.white24)),
             width: isPressed ? 2.0 : 1.0,
           ),
         ),
@@ -655,15 +711,15 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
           constraints: const BoxConstraints(maxWidth: 400, minWidth: 200),
           height: 140,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: _activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.1)) : Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isPressed ? glowColor : Colors.grey.shade300,
+              color: isPressed ? glowColor : (_activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.3)) : Colors.grey.shade300),
               width: isPressed ? 3.0 : 1.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: isPressed ? glowColor.withValues(alpha:  0.4) : Colors.black12,
+                color: isPressed ? glowColor.withValues(alpha:  0.4) : (_activeTheme == 'custom' ? Colors.transparent : Colors.black12),
                 blurRadius: isPressed ? 20 : 6,
                 spreadRadius: isPressed ? 2 : 0,
                 offset: const Offset(0, 4),
@@ -690,7 +746,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                 child: Text(
                   'TOUCHPAD',
                   style: TextStyle(
-                    color: isPressed ? glowColor : Colors.grey.shade400,
+                    color: isPressed ? glowColor : (_activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black54 : Colors.white54) : Colors.grey.shade400),
                     fontSize: 12,
                     letterSpacing: 2,
                     fontWeight: FontWeight.bold,
@@ -718,10 +774,10 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
         width: 18,
         height: 35,
         decoration: BoxDecoration(
-          color: isPressed ? glowColor.withValues(alpha:  0.2) : Colors.white,
+          color: isPressed ? glowColor.withValues(alpha:  0.2) : (_activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.15)) : Colors.white),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isPressed ? glowColor : Colors.grey.shade400,
+            color: isPressed ? glowColor : (_activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.3)) : Colors.grey.shade400),
             width: 1.5,
           ),
           boxShadow: [
@@ -730,7 +786,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
           ],
         ),
         child: Center(
-          child: Icon(iconData, size: 10, color: isPressed ? glowColor : Colors.grey.shade600),
+          child: Icon(iconData, size: 10, color: isPressed ? glowColor : (_activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black87 : Colors.white) : Colors.grey.shade600)),
         ),
       ),
     );
@@ -757,11 +813,12 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
         width: 40,
         height: 30,
         decoration: BoxDecoration(
-          color: isPressed ? Colors.black87 : Colors.black,
+          color: isPressed ? Colors.black87 : (_activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.15)) : Colors.black),
           borderRadius: BorderRadius.circular(20),
+          border: _activeTheme == 'custom' ? Border.all(color: _isCustomImageLight ? Colors.black.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.3), width: 1.5) : null,
           boxShadow: [
             BoxShadow(
-              color: isPressed ? Colors.white54 : Colors.black45,
+              color: isPressed ? Colors.white54 : (_activeTheme == 'custom' ? Colors.transparent : Colors.black45),
               blurRadius: isPressed ? 10 : 4,
               offset: const Offset(0, 2),
             )
@@ -771,7 +828,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
           child: Text(
             'GP',
             style: TextStyle(
-              color: isPressed ? Colors.white : Colors.white70,
+              color: isPressed ? Colors.white : (_activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black87 : Colors.white) : Colors.white70),
               fontWeight: FontWeight.bold,
               fontSize: 12,
               letterSpacing: 1,
@@ -794,13 +851,14 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
         width: 32,
         height: 14,
         decoration: BoxDecoration(
-          color: isPressed ? Colors.orange.withValues(alpha:  0.9) : Colors.black87,
+          color: isPressed ? Colors.orange.withValues(alpha:  0.9) : (_activeTheme == 'custom' ? (_isCustomImageLight ? Colors.black.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.15)) : Colors.black87),
           borderRadius: BorderRadius.circular(8),
+          border: _activeTheme == 'custom' ? Border.all(color: _isCustomImageLight ? Colors.black.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.3), width: 1.0) : null,
           boxShadow: [
             if (isPressed)
               BoxShadow(color: Colors.orange.withValues(alpha:  0.6), blurRadius: 6, spreadRadius: 1)
             else
-              const BoxShadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1))
+              BoxShadow(color: _activeTheme == 'custom' ? Colors.transparent : Colors.black45, blurRadius: 2, offset: const Offset(0, 1))
           ],
         ),
       ),
@@ -829,74 +887,105 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
             return AlertDialog(
               backgroundColor: const Color(0xFFF5F5F7),
               title: const Text('Controller Settings', style: TextStyle(fontWeight: FontWeight.bold)),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Gyroscope Sensitivity'),
-                  Row(
-                    children: [
-                      const Text('0.5x'),
-                      Expanded(
-                        child: Slider(
-                          value: _gyroSensitivity,
-                          min: 0.5,
-                          max: 5.0,
-                          divisions: 45,
-                          label: '${_gyroSensitivity.toStringAsFixed(1)}x',
-                          activeColor: const Color(0xFF00439C),
-                          onChanged: (val) {
-                            setDialogState(() {
-                              _gyroSensitivity = val;
-                            });
-                            setState(() {
-                              _gyroSensitivity = val;
-                            });
-                          },
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Gyroscope Sensitivity'),
+                    Row(
+                      children: [
+                        const Text('0.5x'),
+                        Expanded(
+                          child: Slider(
+                            value: _gyroSensitivity,
+                            min: 0.5,
+                            max: 5.0,
+                            divisions: 45,
+                            label: '${_gyroSensitivity.toStringAsFixed(1)}x',
+                            activeColor: const Color(0xFF00439C),
+                            onChanged: (val) {
+                              setDialogState(() {
+                                _gyroSensitivity = val;
+                              });
+                              setState(() {
+                                _gyroSensitivity = val;
+                              });
+                            },
+                          ),
                         ),
-                      ),
-                      const Text('5.0x'),
-                    ],
-                  ),
-                  const Divider(),
-                  SwitchListTile(
-                    title: const Text("Hold & Ramp Triggers"),
-                    subtitle: const Text("L2/R2 simulate analog press over 0.5s"),
-                    value: _analogTriggers,
-                    activeThumbColor: const Color(0xFF00439C),
-                    contentPadding: EdgeInsets.zero,
-                    onChanged: (val) {
-                      setDialogState(() => _analogTriggers = val);
-                      setState(() => _analogTriggers = val);
-                    },
-                  ),
-                  const Divider(),
-                  const Text("Controller Theme", style: TextStyle(fontWeight: FontWeight.bold)),
-                  DropdownButton<String>(
-                    value: _activeTheme,
-                    isExpanded: true,
-                    items: const [
-                      DropdownMenuItem(value: 'ps5', child: Text('PS5 (Light)')),
-                      DropdownMenuItem(value: 'xbox', child: Text('Xbox (Dark Green)')),
-                      DropdownMenuItem(value: 'switch', child: Text('Switch (Neon Red/Blue)')),
-                      DropdownMenuItem(value: 'custom', child: Text('Custom Background')),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) {
-                        setDialogState(() => _activeTheme = val);
-                        _setTheme(val);
-                      }
-                    },
-                  ),
-                  if (_activeTheme == 'custom')
-                    ElevatedButton.icon(
-                      onPressed: () {
-                         _pickCustomBackground();
-                         Navigator.pop(context);
-                      },
-                      icon: const Icon(Icons.image),
-                      label: const Text("Pick Background Image"),
+                        const Text('5.0x'),
+                      ],
                     ),
-                ],
+                    const Divider(),
+                    SwitchListTile(
+                      title: const Text("Haptic Feedback (Rumble)"),
+                      subtitle: const Text("Vibrate phone on in-game impacts"),
+                      value: _enableVibration,
+                      activeThumbColor: const Color(0xFF00439C),
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (val) {
+                        setDialogState(() => _enableVibration = val);
+                        setState(() => _enableVibration = val);
+                        if (!val) {
+                           Vibration.cancel();
+                        }
+                      },
+                    ),
+                    const Divider(),
+                    SwitchListTile(
+                      title: const Text("Hold & Ramp Triggers"),
+                      subtitle: const Text("L2/R2 simulate analog press over 0.5s"),
+                      value: _analogTriggers,
+                      activeThumbColor: const Color(0xFF00439C),
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (val) {
+                        setDialogState(() => _analogTriggers = val);
+                        setState(() => _analogTriggers = val);
+                      },
+                    ),
+                    const Divider(),
+                    const Text("Controller Theme", style: TextStyle(fontWeight: FontWeight.bold)),
+                    DropdownButton<String>(
+                      value: _activeTheme,
+                      isExpanded: true,
+                      items: const [
+                        DropdownMenuItem(value: 'ps5', child: Text('PS5 (Light)')),
+                        DropdownMenuItem(value: 'xbox', child: Text('Xbox (Dark Green)')),
+                        DropdownMenuItem(value: 'switch', child: Text('Switch (Neon Red/Blue)')),
+                        DropdownMenuItem(value: 'custom', child: Text('Custom Background')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => _activeTheme = val);
+                          _setTheme(val);
+                        }
+                      },
+                    ),
+                    if (_activeTheme == 'custom')
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () {
+                               _pickCustomBackground();
+                               Navigator.pop(context);
+                            },
+                            icon: const Icon(Icons.image),
+                            label: const Text("Pick Background Image"),
+                          ),
+                          if (_customImagePath != null)
+                            OutlinedButton.icon(
+                              onPressed: () {
+                                _removeCustomBackground();
+                                Navigator.pop(context);
+                              },
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              label: const Text("Remove Background", style: TextStyle(color: Colors.red)),
+                            ),
+                        ],
+                      ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -917,12 +1006,19 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
+        decoration: BoxDecoration(
+          color: _activeTheme == 'xbox' ? const Color(0xFF1E1E1E) : (_activeTheme == 'switch' ? const Color(0xFF2C2C2C) : null),
+          gradient: (_activeTheme == 'ps5' || (_activeTheme == 'custom' && _customImagePath == null)) ? const RadialGradient(
             center: Alignment.center,
             radius: 1.5,
             colors: [Color(0xFFFFFFFF), Color(0xFFE2E2E6)],
-          ),
+          ) : null,
+          image: (_activeTheme == 'custom' && _customImagePath != null) 
+              ? DecorationImage(
+                  image: FileImage(File(_customImagePath!)),
+                  fit: BoxFit.cover,
+                ) 
+              : null,
         ),
         child: SafeArea(
           child: Stack(

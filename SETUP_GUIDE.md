@@ -63,7 +63,7 @@ If your router blocks device-to-device communication (common in dorms or offices
 
 ---
 
-## ⚙️ Step 6: Calibration & Themes (New in v1.3.0)
+## ⚙️ Step 6: Calibration, Themes & Vibration (New)
 
 ### Zero-Drift Calibration (Crucial for Racing)
 GyroPad uses raw 1:1 sensor data with zero deadzones. Because camera bumps and desk surfaces aren't perfectly flat, you must calibrate the physical tilt of your phone:
@@ -71,10 +71,11 @@ GyroPad uses raw 1:1 sensor data with zero deadzones. Because camera bumps and d
 2. In the PC App, click **"Calibrate Neutral"**.
 3. This will mathematically lock your hardware to `0.000` drift. This calibration is permanently saved to your active profile!
 
-### Controller Themes
+### Controller Themes & Haptics
 Make the app look how you want! In the Android app, click the **Settings Gear**:
 * Change the **Controller Theme** to PS5 (Light), Xbox (Dark Green), or Switch (Neon).
 * Select **Custom Background** to pick an image from your phone's photo gallery to use as your UI background!
+* **Vibration Support:** The app now fully supports in-game haptic feedback (rumble) sent from the PC directly to your phone. Ensure vibration is enabled on your phone's system settings.
 
 ---
 
