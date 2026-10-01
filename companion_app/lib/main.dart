@@ -70,6 +70,13 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
   bool _analogTriggers = false;
   bool _enableVibration = true;
 
+  // Steering Wheel Mode: gyro-integration based wide-range (±90°) steering
+  bool _steeringWheelMode = false;
+  double _wheelAngle = 0.0; // accumulated rotation in radians, clamped to ±π/2
+  DateTime? _lastGyroTime; // timestamp of last gyro sample for Δt calculation
+  Timer? _wheelUiTimer; // ~30 Hz UI refresh timer, active only in Steering Wheel Mode
+  static const double _wheelMaxAngle = pi / 2; // ±90° = ±π/2 radians
+
   double _leftStickX = 0.0;
   double _leftStickY = 0.0;
   double _rightStickX = 0.0;
@@ -297,7 +304,23 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
       _lastAccel = event;  // no setState — UI doesn't need this directly
     });
     _gyroSub = gyroscopeEventStream(samplingPeriod: const Duration(milliseconds: 10)).listen((event) {
-      _lastGyro = event;   // no setState — UI doesn't need this directly
+      _lastGyro = event; // no setState — UI doesn't need this directly
+      // Steering Wheel Mode: integrate gyro Z (screen-normal axis = steering wheel spin axis)
+      // Negate: clockwise rotation → negative gyro.z → positive (right) steering output
+      if (_steeringWheelMode) {
+        final now = DateTime.now();
+        if (_lastGyroTime != null) {
+          final double dt = now.difference(_lastGyroTime!).inMicroseconds / 1e6;
+          // Sanity guard: ignore large Δt gaps (app backgrounded, first sample, etc.)
+          if (dt > 0 && dt < 0.2) {
+            double gz = event.z;
+            // 0.03 rad/s deadzone to ignore static sensor noise and stop stationary drift
+            if (gz.abs() < 0.03) gz = 0.0;
+            _wheelAngle = (_wheelAngle - gz * dt).clamp(-_wheelMaxAngle, _wheelMaxAngle);
+          }
+        }
+        _lastGyroTime = now;
+      }
     });
   }
 
@@ -424,7 +447,13 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
       'accel': [_lastAccel!.x * _gyroSensitivity, _lastAccel!.y * _gyroSensitivity, _lastAccel!.z * _gyroSensitivity],
       'gyro': [_lastGyro!.x * _gyroSensitivity, _lastGyro!.y * _gyroSensitivity, _lastGyro!.z * _gyroSensitivity],
       'buttons': _buttons,
-      'joystick_left': {'x': _leftStickX, 'y': _leftStickY},
+      // In Steering Wheel Mode, inject normalized gyro angle as joystick_left.x.
+      // The PC host's joystick-override rule (abs(lx) > 0.01) then uses this
+      // value for steering instead of the accelerometer — no Python changes needed.
+      'joystick_left': {
+        'x': _steeringWheelMode ? (_wheelAngle / _wheelMaxAngle) : _leftStickX,
+        'y': _leftStickY,
+      },
       'joystick_right': {'x': _rightStickX, 'y': _rightStickY},
       'touchpad_delta': {'x': _touchpadDeltaX, 'y': _touchpadDeltaY},
       'analog_triggers': _analogTriggers,
@@ -443,6 +472,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
     }
     _accelSub?.cancel();
     _gyroSub?.cancel();
+    _wheelUiTimer?.cancel();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
@@ -542,6 +572,8 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
 
     return GestureDetector(
       onPanUpdate: (details) {
+        // In Steering Wheel Mode, disable L3 drag to prevent accidental conflicts with gyro steering
+        if (_steeringWheelMode && isLeft) return;
         setState(() {
           double newX = stickX + details.delta.dx / maxOffset;
           double newY = stickY + details.delta.dy / maxOffset;
@@ -562,6 +594,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
         });
       },
       onPanEnd: (_) {
+        if (_steeringWheelMode && isLeft) return;
         setState(() {
           if (isLeft) {
             _leftStickX = 0.0;
@@ -574,6 +607,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
         });
       },
       onPanCancel: () {
+        if (_steeringWheelMode && isLeft) return;
         setState(() {
           if (isLeft) {
             _leftStickX = 0.0;
@@ -865,6 +899,52 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
     );
   }
 
+
+  /// Steering Wheel arc indicator — shown at top-center when Steering Wheel Mode is active.
+  /// Paints a semicircular arc from -90° to +90° with a live-updating needle.
+  Widget _buildWheelIndicator() {
+    final Color themeColor = _activeTheme == 'xbox'
+        ? const Color(0xFF107C10)
+        : (_activeTheme == 'switch'
+            ? const Color(0xFF00A2D6)
+            : const Color(0xFF00439C));
+
+    final double degrees = (_wheelAngle * 180 / pi).abs();
+    final String label = degrees < 2
+        ? 'CENTER'
+        : '${degrees.toStringAsFixed(0)}° ${_wheelAngle > 0 ? 'R' : 'L'}';
+
+    return SizedBox(
+      width: 80,
+      height: 48,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(
+            size: const Size(80, 48),
+            painter: _WheelArcPainter(
+              angle: _wheelAngle,
+              maxAngle: _wheelMaxAngle,
+              themeColor: themeColor,
+            ),
+          ),
+          Positioned(
+            bottom: 6,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: themeColor,
+                fontSize: 8,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDataRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -941,6 +1021,41 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                       onChanged: (val) {
                         setDialogState(() => _analogTriggers = val);
                         setState(() => _analogTriggers = val);
+                      },
+                    ),
+                    const Divider(),
+                    SwitchListTile(
+                      title: const Text("Steering Wheel Mode"),
+                      subtitle: const Text("Gyro-based ±90° rotation for ETS2 & racing"),
+                      value: _steeringWheelMode,
+                      activeThumbColor: const Color(0xFF00439C),
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (val) {
+                        setDialogState(() => _steeringWheelMode = val);
+                        setState(() {
+                          _steeringWheelMode = val;
+                          _lastGyroTime = null;
+                          if (val && _lastAccel != null) {
+                            // Seed _wheelAngle using absolute gravity (asin) so the
+                            // physical level (horizontal) is ALWAYS exactly 0°.
+                            // We ignore _gyroSensitivity here to avoid massively exaggerating
+                            // slight tilts (which caused the "48° jump" bug).
+                            _wheelAngle = asin((_lastAccel!.y / 9.81).clamp(-1.0, 1.0));
+                          } else {
+                            _wheelAngle = 0.0;
+                          }
+                        });
+                        if (val) {
+                          // Start 30 Hz UI timer to repaint the arc indicator
+                          _wheelUiTimer?.cancel();
+                          _wheelUiTimer = Timer.periodic(
+                            const Duration(milliseconds: 33),
+                            (_) { if (mounted) setState(() {}); },
+                          );
+                        } else {
+                          _wheelUiTimer?.cancel();
+                          _wheelUiTimer = null;
+                        }
                       },
                     ),
                     const Divider(),
@@ -1049,7 +1164,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
 
               // Top Center Touchpad & Menu Buttons
               Positioned(
-                top: 32,
+                top: _steeringWheelMode ? 56 : 32,
                 left: 0,
                 right: 0,
                 child: Row(
@@ -1079,6 +1194,15 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                   ],
                 ),
               ),
+
+              // Steering Wheel Mode arc indicator — top center between shoulder buttons
+              if (_steeringWheelMode)
+                Positioned(
+                  top: 6,
+                  left: 0,
+                  right: 0,
+                  child: Center(child: _buildWheelIndicator()),
+                ),
 
               // Connection Indicator (replaces old debug toggle placement)
               Positioned(
@@ -1237,4 +1361,85 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
       ),
     );
   }
+}
+
+/// CustomPainter for the Steering Wheel Mode arc indicator.
+///
+/// Geometry (widget: 80×48, arc center at bottom-center):
+///   - Background arc: top semicircle (left → up → right = 180° sweep clockwise from π)
+///   - Needle: line from center to arc at current [angle]
+///   - Center dot: small filled circle
+///
+/// Canvas angle mapping (Flutter: 0=right, π/2=down, π=left, 3π/2=up):
+///   - wheelAngle = 0      → canvas -π/2  (straight up)
+///   - wheelAngle = +π/2   → canvas  0    (full right)
+///   - wheelAngle = -π/2   → canvas  π    (full left)
+class _WheelArcPainter extends CustomPainter {
+  final double angle;    // current wheel angle in radians, ∈ [-maxAngle, maxAngle]
+  final double maxAngle; // ±π/2
+  final Color themeColor;
+
+  const _WheelArcPainter({
+    required this.angle,
+    required this.maxAngle,
+    required this.themeColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height - 6.0; // arc center sits near the bottom edge
+    final center = Offset(cx, cy);
+    final radius = cx - 5.0;
+
+    // ── Background arc: top semicircle ──────────────────────────────────────
+    // startAngle=π (left / 9 o'clock), sweepAngle=π clockwise → reaches 3π/2
+    // (top/12 o'clock) then continues to 0 (right/3 o'clock). That is the
+    // top half of the circle.
+    final bgPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.30)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      pi,  // start at left (9 o'clock)
+      pi,  // sweep clockwise 180° → passes through top → ends at right
+      false,
+      bgPaint,
+    );
+
+    // ── Center tick mark (straight-ahead indicator) ─────────────────────────
+    final tickPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.55)
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+      Offset(cx, cy - radius - 4),
+      Offset(cx, cy - radius + 5),
+      tickPaint,
+    );
+
+    // ── Needle ───────────────────────────────────────────────────────────────
+    // Canvas angle for needle: wheelAngle=0 → up (-π/2), ±π/2 → right/left
+    final double canvasAngle = -pi / 2 + angle;
+    final needleEnd = Offset(
+      cx + radius * cos(canvasAngle),
+      cy + radius * sin(canvasAngle),
+    );
+
+    final needlePaint = Paint()
+      ..color = themeColor
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(center, needleEnd, needlePaint);
+
+    // ── Center dot ───────────────────────────────────────────────────────────
+    canvas.drawCircle(center, 3.5, Paint()..color = themeColor);
+  }
+
+  @override
+  bool shouldRepaint(_WheelArcPainter old) =>
+      old.angle != angle || old.themeColor != themeColor;
 }

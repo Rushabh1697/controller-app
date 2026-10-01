@@ -910,6 +910,15 @@ class ControllerGUI:
                     except Exception as e:
                         # Stream error, trigger reconnect
                         break
+                
+                # We broke out of the inner stream loop (e.g. connection dropped).
+                # Crucial: explicitly close the dead socket so the phone receives a TCP FIN
+                # and removes us from its `_clients` list. Otherwise, when we loop back around 
+                # to reconnect, the phone will reject us with 'BUSY' and abort the reconnect entirely.
+                try:
+                    s.close()
+                except Exception:
+                    pass
 
         except Exception as e:
             self.log(f"Stream error: {e}")

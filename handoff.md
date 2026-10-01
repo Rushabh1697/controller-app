@@ -36,8 +36,9 @@ The app supports:
 - Touchpad mouse emulation
 - Battery Toast Notifications on PC
 - Physical haptic rumble feedback
+- **Steering Wheel Mode**: Gyro-integration based ±90° wide-range steering for ETS2 & racing (v1.4.0)
 
-**Everything is committed and tagged as `v1.3.0` on GitHub.**
+**v1.3.0 committed and tagged on GitHub. v1.4.0 feature complete in `companion_app/lib/main.dart`, pending APK build & release.**
 
 ## 3. Directory & File Structure
 
@@ -257,3 +258,14 @@ When navigating to `https://github.com/Rushabh1697/controller-app/blob/main/Rele
     - Added support for `VIB:0` to instantly call `Vibration.cancel()` on the Flutter side when the game explicitly stops the rumble.
     - Added a **"Haptic Feedback"** master toggle to the Flutter App's settings menu to completely disable all phone vibrations if desired.
     - **CRITICAL MULTI-THREADING FIX:** Discovered that the ViGEmBus driver fires the rumble callback on a separate C-level thread. Calling `s.sendall()` from this thread onto a non-blocking Python socket was randomly raising `BlockingIOError` and silently swallowing/dropping vibration packets into the void. Refactored the callback to use a thread-safe `pending_vib_duration` queue so the main polling thread safely dispatches all vibration network packets.
+
+## 12. Recent Fixes & Additions (v1.4.0 - October 1, 2026)
+- **Steering Wheel Mode (Flutter App)**: Added gyroscope-integration based wide-range steering to `companion_app/lib/main.dart`. Replaces the accelerometer-only 38° lock with true gyro-tracked ±90° rotation so users can physically spin the phone like a real steering wheel for games like Euro Truck Simulator 2 and racing games.
+  - **Toggle**: New `SwitchListTile` in the Controller Settings dialog (same menu as Haptic Feedback and Hold & Ramp Triggers). Defaults to **off** every launch (not persisted).
+  - **Integration logic**: On each gyroscopeEventStream sample, `event.z` (screen-normal rotation axis) is multiplied by `Δt` (microsecond-precision timestamp diff) and accumulated into `_wheelAngle`. Sign is negated so clockwise rotation = positive (right) steering. A `dt < 0.2s` sanity guard prevents huge jumps after backgrounding.
+  - **Range**: Clamped to `±π/2` (±90°, 180° total). Constant `_wheelMaxAngle = pi/2`.
+  - **Normalized output**: `_wheelAngle / _wheelMaxAngle` → `[-1.0, 1.0]` is injected as `joystick_left.x` in the existing JSON telemetry payload. The PC host's pre-existing joystick-override rule (`abs(lx) > 0.01 → use joystick, else use accel`) picks this up with **zero changes** to the Python host.
+  - **L3 drag disabled**: When Steering Wheel Mode is active, `onPanUpdate/End/Cancel` handlers for the L3 thumbstick return early, preventing accidental thumb drags from conflicting with gyro steering. L3 tap (click) and long-press still work normally.
+  - **UI refresh**: A `Timer.periodic(33ms)` (~30 Hz) fires `setState()` only while wheel mode is active, keeping the arc indicator smooth without flooding at the full 100 Hz gyro rate.
+  - **Arc indicator**: `_WheelArcPainter` (`CustomPainter`) renders a compact 80×48 semicircular arc at `top: 6, center` on the HUD Stack — between the shoulder buttons, above the touchpad. Shows: grey background arc (±90° range), colored theme needle at current angle, center tick, and degree/side text label. Appears only when mode is active.
+  - **No PC host changes**: The entire feature is self-contained in `companion_app/lib/main.dart`. The Python host is unchanged.
