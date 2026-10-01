@@ -12,6 +12,55 @@ import 'package:http/http.dart' as http;
 import 'package:vibration/vibration.dart';
 import 'package:palette_generator/palette_generator.dart';
 
+
+class LayoutItem {
+  double x;
+  double y;
+  double size;
+  double opacity;
+
+  LayoutItem({required this.x, required this.y, this.size = 1.0, this.opacity = 1.0});
+
+  Map<String, dynamic> toJson() => {'x': x, 'y': y, 'size': size, 'opacity': opacity};
+
+  factory LayoutItem.fromJson(Map<String, dynamic> json) {
+    return LayoutItem(
+      x: (json['x'] as num).toDouble(),
+      y: (json['y'] as num).toDouble(),
+      size: (json['size'] as num?)?.toDouble() ?? 1.0,
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+    );
+  }
+}
+
+class CustomLayout {
+  Map<String, LayoutItem> items;
+  CustomLayout(this.items);
+
+  Map<String, dynamic> toJson() => items.map((k, v) => MapEntry(k, v.toJson()));
+
+  factory CustomLayout.fromJson(Map<String, dynamic> json) {
+    Map<String, LayoutItem> items = {};
+    json.forEach((k, v) {
+      items[k] = LayoutItem.fromJson(v as Map<String, dynamic>);
+    });
+    return CustomLayout(items);
+  }
+
+  static CustomLayout createDefault() {
+    return CustomLayout({
+      'dpad': LayoutItem(x: 0.1, y: 0.6),
+      'l3': LayoutItem(x: 0.15, y: 0.85),
+      'face_buttons': LayoutItem(x: 0.9, y: 0.6),
+      'r3': LayoutItem(x: 0.85, y: 0.85),
+      'l1': LayoutItem(x: 0.15, y: 0.20),
+      'l2': LayoutItem(x: 0.15, y: 0.08),
+      'r1': LayoutItem(x: 0.85, y: 0.20),
+      'r2': LayoutItem(x: 0.85, y: 0.08),
+    });
+  }
+}
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -89,6 +138,11 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
   String? _customImagePath;
   bool _isCustomImageLight = false;
 
+  // Custom Layouts State
+  String _activePreset = 'default';
+  final Map<String, CustomLayout> _layouts = {};
+
+
   final Map<String, bool> _buttons = {
     'Cross': false,
     'Circle': false,
@@ -120,7 +174,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
     _pin = (1000 + Random().nextInt(9000)).toString();
     _startServer();
     _startSensors();
-    _loadTheme();
+    _loadSettings();
     _initializeUpdateChecker();
   }
 
@@ -144,11 +198,25 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
     }
   }
 
-  Future<void> _loadTheme() async {
+  Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _activeTheme = prefs.getString('theme') ?? 'ps5';
       _customImagePath = prefs.getString('custom_bg');
+      _activePreset = prefs.getString('active_preset') ?? 'default';
+
+      for (int i = 1; i <= 3; i++) {
+        final String? layoutJson = prefs.getString('preset_$i');
+        if (layoutJson != null) {
+          try {
+            _layouts['preset_$i'] = CustomLayout.fromJson(jsonDecode(layoutJson));
+          } catch (_) {
+            _layouts['preset_$i'] = CustomLayout.createDefault();
+          }
+        } else {
+          _layouts['preset_$i'] = CustomLayout.createDefault();
+        }
+      }
     });
     if (_activeTheme == 'custom') {
       _updateImagePalette();
@@ -478,6 +546,38 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
   }
 
   // PS5 style Action Buttons (clear with grey icon)
+  Widget _buildDPadCluster() {
+    return SizedBox(
+      width: 130,
+      height: 130,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned(top: 0, child: _buildDpadButton('DpadUp', Icons.arrow_drop_up)),
+          Positioned(bottom: 0, child: _buildDpadButton('DpadDown', Icons.arrow_drop_down)),
+          Positioned(left: 0, child: _buildDpadButton('DpadLeft', Icons.arrow_left)),
+          Positioned(right: 0, child: _buildDpadButton('DpadRight', Icons.arrow_right)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFaceButtonsCluster() {
+    return SizedBox(
+      width: 130,
+      height: 130,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned(top: 0, child: _buildActionButton('Triangle', '△')),
+          Positioned(bottom: 0, child: _buildActionButton('Cross', '×')),
+          Positioned(left: 0, child: _buildActionButton('Square', '□')),
+          Positioned(right: 0, child: _buildActionButton('Circle', '○')),
+        ],
+      ),
+    );
+  }
+
   Widget _buildActionButton(String key, String symbol) {
     bool isPressed = _buttons[key]!;
     Color glowColor = const Color(0xFF00439C); // PS Blue
@@ -961,16 +1061,27 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
   void _showSettingsDialog() {
     showDialog(
       context: context,
+      useSafeArea: false,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
+            return Dialog.fullscreen(
               backgroundColor: const Color(0xFFF5F5F7),
-              title: const Text('Controller Settings', style: TextStyle(fontWeight: FontWeight.bold)),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+              child: Scaffold(
+                backgroundColor: const Color(0xFFF5F5F7),
+                appBar: AppBar(
+                  backgroundColor: const Color(0xFFF5F5F7),
+                  title: const Text('Controller Settings', style: TextStyle(fontWeight: FontWeight.bold)),
+                  leading: IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+                body: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                     const Text('Gyroscope Sensitivity'),
                     Row(
                       children: [
@@ -1059,6 +1170,29 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                       },
                     ),
                     const Divider(),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text("Custom Layouts", style: TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: const Text("Edit controls position, size, and opacity"),
+                      trailing: const Icon(Icons.edit, color: Color(0xFF00439C)),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => LayoutEditorScreen(
+                          initialPreset: _activePreset,
+                          layouts: _layouts,
+                          onSave: (preset, layout) async {
+                            final prefs = await SharedPreferences.getInstance();
+                            setState(() {
+                              _activePreset = preset;
+                              _layouts[preset] = layout;
+                            });
+                            await prefs.setString('active_preset', preset);
+                            await prefs.setString(preset, jsonEncode(layout.toJson()));
+                          },
+                        )));
+                      },
+                    ),
+                    const Divider(),
                     const Text("Controller Theme", style: TextStyle(fontWeight: FontWeight.bold)),
                     DropdownButton<String>(
                       value: _activeTheme,
@@ -1102,16 +1236,45 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                   ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Close', style: TextStyle(color: Color(0xFF00439C))),
-                ),
-              ],
-            );
+            ),
+          );
           }
         );
       },
+    );
+  }
+
+
+  Widget _buildCustomLayoutOverlay() {
+    final layout = _layouts[_activePreset] ?? CustomLayout.createDefault();
+    final size = MediaQuery.of(context).size;
+    
+    Widget positionItem(String key, Widget child) {
+      final item = layout.items[key] ?? LayoutItem(x: 0.5, y: 0.5);
+      return Positioned(
+        left: item.x * size.width - 65 * item.size,
+        top: item.y * size.height - 65 * item.size,
+        child: Opacity(
+          opacity: item.opacity,
+          child: Transform.scale(
+            scale: item.size,
+            child: child,
+          ),
+        ),
+      );
+    }
+    
+    return Stack(
+      children: [
+        positionItem('l2', _buildShoulderButton('L2', 'L2', isL2R2: true, isLeft: true)),
+        positionItem('l1', _buildShoulderButton('L1', 'L1', isLeft: true)),
+        positionItem('r2', _buildShoulderButton('R2', 'R2', isL2R2: true, isLeft: false)),
+        positionItem('r1', _buildShoulderButton('R1', 'R1', isLeft: false)),
+        positionItem('dpad', _buildDPadCluster()),
+        positionItem('l3', RepaintBoundary(child: _buildThumbstick('L3'))),
+        positionItem('face_buttons', _buildFaceButtonsCluster()),
+        positionItem('r3', RepaintBoundary(child: _buildThumbstick('R3'))),
+      ],
     );
   }
 
@@ -1139,28 +1302,30 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
           child: Stack(
             children: [
               // Top L1/L2 and R1/R2
-              Positioned(
-                top: 16,
-                left: 32,
-                child: Column(
-                  children: [
-                    _buildShoulderButton('L2', 'L2', isL2R2: true, isLeft: true),
-                    const SizedBox(height: 4),
-                    _buildShoulderButton('L1', 'L1', isLeft: true),
-                  ],
+              if (_activePreset == 'default')
+                Positioned(
+                  top: 16,
+                  left: 32,
+                  child: Column(
+                    children: [
+                      _buildShoulderButton('L2', 'L2', isL2R2: true, isLeft: true),
+                      const SizedBox(height: 4),
+                      _buildShoulderButton('L1', 'L1', isLeft: true),
+                    ],
+                  ),
                 ),
-              ),
-              Positioned(
-                top: 16,
-                right: 32,
-                child: Column(
-                  children: [
-                    _buildShoulderButton('R2', 'R2', isL2R2: true, isLeft: false),
-                    const SizedBox(height: 4),
-                    _buildShoulderButton('R1', 'R1', isLeft: false),
-                  ],
+              if (_activePreset == 'default')
+                Positioned(
+                  top: 16,
+                  right: 32,
+                  child: Column(
+                    children: [
+                      _buildShoulderButton('R2', 'R2', isL2R2: true, isLeft: false),
+                      const SizedBox(height: 4),
+                      _buildShoulderButton('R1', 'R1', isLeft: false),
+                    ],
+                  ),
                 ),
-              ),
 
               // Top Center Touchpad & Menu Buttons
               Positioned(
@@ -1237,6 +1402,9 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                 ),
               ),
 
+              if (_activePreset != 'default')
+                _buildCustomLayoutOverlay(),
+                
               // Debug Telemetry
               if (_showDebug)
                 Positioned(
@@ -1286,23 +1454,10 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // D-Pad
-                            SizedBox(
-                              width: 130,
-                              height: 130,
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Positioned(top: 0, child: _buildDpadButton('DpadUp', Icons.arrow_drop_up)),
-                                  Positioned(bottom: 0, child: _buildDpadButton('DpadDown', Icons.arrow_drop_down)),
-                                  Positioned(left: 0, child: _buildDpadButton('DpadLeft', Icons.arrow_left)),
-                                  Positioned(right: 0, child: _buildDpadButton('DpadRight', Icons.arrow_right)),
-                                ],
-                              ),
-                            ),
+                            if (_activePreset == 'default') _buildDPadCluster(),
                             const SizedBox(height: 20),
                             // L3 Thumbstick — RepaintBoundary (Bug #15: limits rebuild propagation)
-                            RepaintBoundary(child: _buildThumbstick('L3')),
+                            if (_activePreset == 'default') RepaintBoundary(child: _buildThumbstick('L3')),
                           ],
                         ),
                       ),
@@ -1331,20 +1486,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Action Buttons
-                            SizedBox(
-                              width: 130,
-                              height: 130,
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Positioned(top: 0, child: _buildActionButton('Triangle', '△')),
-                                  Positioned(bottom: 0, child: _buildActionButton('Cross', '×')),
-                                  Positioned(left: 0, child: _buildActionButton('Square', '□')),
-                                  Positioned(right: 0, child: _buildActionButton('Circle', '○')),
-                                ],
-                              ),
-                            ),
+                            if (_activePreset == 'default') _buildFaceButtonsCluster(),
                             const SizedBox(height: 20),
                             // R3 Thumbstick — RepaintBoundary (Bug #15: limits rebuild propagation)
                             RepaintBoundary(child: _buildThumbstick('R3')),
@@ -1442,4 +1584,251 @@ class _WheelArcPainter extends CustomPainter {
   @override
   bool shouldRepaint(_WheelArcPainter old) =>
       old.angle != angle || old.themeColor != themeColor;
+}
+
+
+class LayoutEditorScreen extends StatefulWidget {
+  final String initialPreset;
+  final Map<String, CustomLayout> layouts;
+  final Function(String preset, CustomLayout layout) onSave;
+
+  const LayoutEditorScreen({super.key, required this.initialPreset, required this.layouts, required this.onSave});
+
+  @override
+  State<LayoutEditorScreen> createState() => _LayoutEditorScreenState();
+}
+
+class _LayoutEditorScreenState extends State<LayoutEditorScreen> {
+  late String _activePreset;
+  late CustomLayout _currentLayout;
+  String? _selectedKey;
+
+  @override
+  void initState() {
+    super.initState();
+    _activePreset = widget.initialPreset == 'default' ? 'preset_1' : widget.initialPreset;
+    _currentLayout = CustomLayout.fromJson(widget.layouts[_activePreset]?.toJson() ?? CustomLayout.createDefault().toJson());
+  }
+
+  void _switchPreset(String preset) {
+    if (preset == 'default') return; // Cannot edit default
+    setState(() {
+      _activePreset = preset;
+      _currentLayout = CustomLayout.fromJson(widget.layouts[preset]?.toJson() ?? CustomLayout.createDefault().toJson());
+      _selectedKey = null;
+    });
+  }
+
+  Future<bool> _onWillPop() async {
+    return await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Discard Changes?'),
+        content: const Text('If you go back without saving, your changes will be lost.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Discard', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    ) ?? false;
+  }
+
+  void _save() {
+    widget.onSave(_activePreset, _currentLayout);
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Layout saved successfully!')));
+    Navigator.pop(context);
+  }
+
+  Widget _buildEditorItem(String key, String label, IconData icon) {
+    final item = _currentLayout.items[key] ?? LayoutItem(x: 0.5, y: 0.5);
+    final size = MediaQuery.of(context).size;
+    final isSelected = _selectedKey == key;
+
+    return Positioned(
+      left: item.x * size.width - 65 * item.size,
+      top: item.y * size.height - 65 * item.size,
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedKey = isSelected ? null : key;
+          });
+        },
+        onPanUpdate: (details) {
+          setState(() {
+            _selectedKey = key;
+            item.x += details.delta.dx / size.width;
+            item.y += details.delta.dy / size.height;
+            item.x = item.x.clamp(0.05, 0.95);
+            item.y = item.y.clamp(0.05, 0.95);
+          });
+        },
+        child: Opacity(
+          opacity: item.opacity,
+          child: Transform.scale(
+            scale: item.size,
+            child: Container(
+              width: 130,
+              height: 130,
+              decoration: BoxDecoration(
+                border: isSelected ? Border.all(color: Colors.yellowAccent, width: 3 / item.size) : Border.all(color: Colors.white54, width: 2, style: BorderStyle.solid),
+                color: Colors.black45,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, color: Colors.white, size: 40),
+                    const SizedBox(height: 8),
+                    Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        if (await _onWillPop()) {
+          if (context.mounted) {
+            Navigator.pop(context);
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF222222),
+        body: SafeArea(
+          child: Stack(
+            children: [
+              _buildEditorItem('dpad', 'D-Pad', Icons.gamepad),
+              _buildEditorItem('face_buttons', 'Action', Icons.control_camera),
+              _buildEditorItem('l3', 'L-Stick', Icons.radio_button_checked),
+              _buildEditorItem('r3', 'R-Stick', Icons.radio_button_checked),
+              _buildEditorItem('l1', 'L1', Icons.crop_7_5),
+              _buildEditorItem('l2', 'L2', Icons.crop_5_4),
+              _buildEditorItem('r1', 'R1', Icons.crop_7_5),
+              _buildEditorItem('r2', 'R2', Icons.crop_5_4),
+              
+              Positioned(
+                top: 0, left: 0, right: 0,
+                child: Container(
+                  color: Colors.black87,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () async {
+                        if (await _onWillPop()) {
+                          if (context.mounted) Navigator.pop(context);
+                        }
+                      }),
+                      const SizedBox(width: 16),
+                      const Text("Layout Editor", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      const Spacer(),
+                      DropdownButton<String>(
+                        value: _activePreset,
+                        dropdownColor: Colors.black87,
+                        style: const TextStyle(color: Colors.white),
+                        underline: Container(),
+                        items: const [
+                          DropdownMenuItem(value: 'preset_1', child: Text('Preset 1')),
+                          DropdownMenuItem(value: 'preset_2', child: Text('Preset 2')),
+                          DropdownMenuItem(value: 'preset_3', child: Text('Preset 3')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) _switchPreset(val);
+                        },
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00439C), foregroundColor: Colors.white),
+                        icon: const Icon(Icons.save),
+                        label: const Text("Save"),
+                        onPressed: _save,
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white54)),
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text("Reset Preset"),
+                        onPressed: () {
+                           setState(() {
+                             _currentLayout = CustomLayout.createDefault();
+                             _selectedKey = null;
+                           });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              if (_selectedKey != null)
+                Positioned(
+                  bottom: 20,
+                  left: MediaQuery.of(context).size.width / 2 - 150,
+                  child: Container(
+                    width: 300,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.black87,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text("Edit ${_selectedKey!.toUpperCase()}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(Icons.format_size, color: Colors.white70, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Slider(
+                                value: _currentLayout.items[_selectedKey!]?.size ?? 1.0,
+                                min: 0.5,
+                                max: 2.0,
+                                activeColor: Colors.blueAccent,
+                                onChanged: (val) {
+                                  setState(() => _currentLayout.items[_selectedKey!]!.size = val);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            const Icon(Icons.opacity, color: Colors.white70, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Slider(
+                                value: _currentLayout.items[_selectedKey!]?.opacity ?? 1.0,
+                                min: 0.1,
+                                max: 1.0,
+                                activeColor: Colors.blueAccent,
+                                onChanged: (val) {
+                                  setState(() => _currentLayout.items[_selectedKey!]!.opacity = val);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
