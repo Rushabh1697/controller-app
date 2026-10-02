@@ -36,9 +36,11 @@ The app supports:
 - Touchpad mouse emulation
 - Battery Toast Notifications on PC
 - Physical haptic rumble feedback
-- **Steering Wheel Mode**: Gyro-integration based ±90° wide-range steering for ETS2 & racing (v1.4.0)
+- **Steering Wheel Mode**: Gyro-integration based ±90° wide-range steering with absolute gravity seeding and deadzone anti-drift (v1.4.0)
+- **Custom Control Layouts**: True WYSIWYG visual layout editor to reposition, resize, and set opacity for individual buttons (L1/L2/R1/R2 split), with 3 saveable presets and compact top-bar (v1.4.0)
+- **Host Reconnect Stability**: Explicit socket lifecycle cleanup ensures seamless reconnections without 'BUSY' deadlocks (v1.4.0)
 
-**v1.3.0 committed and tagged on GitHub. v1.4.0 feature complete in `companion_app/lib/main.dart`, pending APK build & release.**
+**v1.3.0 committed and tagged on GitHub. v1.4.0 feature complete in companion_app/lib/main.dart and gui.py, pending APK build & release.**
 
 ## 3. Directory & File Structure
 
@@ -269,3 +271,19 @@ When navigating to `https://github.com/Rushabh1697/controller-app/blob/main/Rele
   - **UI refresh**: A `Timer.periodic(33ms)` (~30 Hz) fires `setState()` only while wheel mode is active, keeping the arc indicator smooth without flooding at the full 100 Hz gyro rate.
   - **Arc indicator**: `_WheelArcPainter` (`CustomPainter`) renders a compact 80×48 semicircular arc at `top: 6, center` on the HUD Stack — between the shoulder buttons, above the touchpad. Shows: grey background arc (±90° range), colored theme needle at current angle, center tick, and degree/side text label. Appears only when mode is active.
   - **No PC host changes**: The entire feature is self-contained in `companion_app/lib/main.dart`. The Python host is unchanged.
+- **Custom Control Layout Offset Fix**: Fixed a visual offset bug where resizing layout items in the custom layout editor would cause them to shift position instead of scaling from the center. Updated `Positioned` coordinate math in both `_buildCustomLayoutOverlay` and `LayoutEditorScreen` to correctly ignore the `item.size` scale multiplier since `Transform.scale` applies a centered render transform on a fixed `130x130` bounding box.
+- **Editor Toolbar UX Fix**: Moved the preset toolbar in the layout editor from the top edge to the dead center of the screen (`Align(alignment: Alignment.center)`). This prevents the toolbar from blocking the L2/R2 shoulder buttons in the top corners during editing.
+- **Editor Bounding Box Fix**: Eliminated the hardcoded `130x130` SizedBox container padding around all custom layout widgets, using `FractionalTranslation(Offset(-0.5, -0.5))` instead. Now, the yellow selection border perfectly hugs the actual widget bounds for 100% accurate WYSIWYG editing, without ghost hitboxes overlapping other buttons.
+- **Custom Layout Reset Fidelity**: Recalculated the `CustomLayout.createDefault()` proportional coordinates to exactly match the flexbox/padding measurements of the original v1.3.0 hardcoded layout (e.g. mapping `top: 16, left: 32` to the exact normalized `0.09` center pivot rather than guessing `0.15`). Pressing "Reset" in the editor now restores the buttons to the true original positions.
+- **Edge-to-Edge Layout**: Removed `SafeArea` wrappers from the main HUD and Layout Editor screens. This allows custom layout elements to be positioned freely up to the absolute edge of the phone display, filling in the "black screen space" notch areas.
+- **Out of Bounds Fix**: Clamped `onPanUpdate` coordinates between `0.0` and `1.0` in the Layout Editor, preventing buttons from being dragged completely off-screen and getting lost.
+- **Shoulder Button Linking**: Added a toggleable "Link" button to the Layout Editor toolbar. When active, dragging or resizing L1 automatically mirrors the transformation to L2 (and vice versa). The same linking applies to R1 and R2.
+- **Preset Renaming**: Added an edit button next to the Layout Editor's preset dropdown. Users can now rename presets (e.g. from "Preset 1" to "F1" or "Racing") which is persisted via `SharedPreferences`.
+- **Racing / F1 Mode**:
+  - Added a dedicated "F1 Racing" layout preset.
+  - Replaced standard L2/R2 buttons with vertical slider pedals (true analog float values sent to the Windows host).
+  - Replaced standard L1/R1 buttons with wide paddle shifters.
+  - Reskinned the face buttons (A, B, X, Y) to feature primary F1 telemetry functions (Radio, Overtake, Camera, DRS).
+  - Reskinned the D-Pad to feature car setup functions (Diff, Bias).
+  - Saving this preset automatically enables the Gyro Steering Wheel Mode (±90° wheel arc).
+  - The PC host `cli.py` and `gui.py` have been upgraded to parse `analog_l2` and `analog_r2` directly as floats.

@@ -49,14 +49,27 @@ class CustomLayout {
 
   static CustomLayout createDefault() {
     return CustomLayout({
-      'dpad': LayoutItem(x: 0.1, y: 0.6),
-      'l3': LayoutItem(x: 0.15, y: 0.85),
-      'face_buttons': LayoutItem(x: 0.9, y: 0.6),
-      'r3': LayoutItem(x: 0.85, y: 0.85),
-      'l1': LayoutItem(x: 0.15, y: 0.20),
-      'l2': LayoutItem(x: 0.15, y: 0.08),
-      'r1': LayoutItem(x: 0.85, y: 0.20),
-      'r2': LayoutItem(x: 0.85, y: 0.08),
+      'dpad': LayoutItem(x: 0.13, y: 0.47),
+      'l3': LayoutItem(x: 0.13, y: 0.79),
+      'face_buttons': LayoutItem(x: 0.87, y: 0.47),
+      'r3': LayoutItem(x: 0.87, y: 0.79),
+      'l1': LayoutItem(x: 0.09, y: 0.20),
+      'l2': LayoutItem(x: 0.09, y: 0.09),
+      'r1': LayoutItem(x: 0.91, y: 0.20),
+      'r2': LayoutItem(x: 0.91, y: 0.09),
+    });
+  }
+
+  static CustomLayout createRacingDefault() {
+    return CustomLayout({
+      'dpad': LayoutItem(x: 0.15, y: 0.60),
+      'l3': LayoutItem(x: 0.25, y: 0.85, size: 0.6),
+      'face_buttons': LayoutItem(x: 0.85, y: 0.60),
+      'r3': LayoutItem(x: 0.75, y: 0.85, size: 0.6),
+      'l1': LayoutItem(x: 0.10, y: 0.20),
+      'l2': LayoutItem(x: 0.08, y: 0.50, size: 1.2),
+      'r1': LayoutItem(x: 0.90, y: 0.20),
+      'r2': LayoutItem(x: 0.92, y: 0.50, size: 1.2),
     });
   }
 }
@@ -132,6 +145,8 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
   double _rightStickY = 0.0;
   double _touchpadDeltaX = 0.0;
   double _touchpadDeltaY = 0.0;
+  double _analogL2 = 0.0;
+  double _analogR2 = 0.0;
   
   // Theme State
   String _activeTheme = 'ps5'; // ps5, xbox, switch, custom
@@ -209,13 +224,37 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
         final String? layoutJson = prefs.getString('preset_$i');
         if (layoutJson != null) {
           try {
-            _layouts['preset_$i'] = CustomLayout.fromJson(jsonDecode(layoutJson));
+            var layout = CustomLayout.fromJson(jsonDecode(layoutJson));
+            if (layout.items.containsKey('l_shoulders')) {
+              var ls = layout.items['l_shoulders']!;
+              layout.items['l1'] = LayoutItem(x: ls.x, y: ls.y, size: ls.size, opacity: ls.opacity);
+              layout.items['l2'] = LayoutItem(x: ls.x, y: ls.y - 0.1, size: ls.size, opacity: ls.opacity);
+              layout.items.remove('l_shoulders');
+            }
+            if (layout.items.containsKey('r_shoulders')) {
+              var rs = layout.items['r_shoulders']!;
+              layout.items['r1'] = LayoutItem(x: rs.x, y: rs.y, size: rs.size, opacity: rs.opacity);
+              layout.items['r2'] = LayoutItem(x: rs.x, y: rs.y - 0.1, size: rs.size, opacity: rs.opacity);
+              layout.items.remove('r_shoulders');
+            }
+            _layouts['preset_$i'] = layout;
           } catch (_) {
             _layouts['preset_$i'] = CustomLayout.createDefault();
           }
         } else {
           _layouts['preset_$i'] = CustomLayout.createDefault();
         }
+      }
+
+      final String? racingJson = prefs.getString('racing');
+      if (racingJson != null) {
+        try {
+          _layouts['racing'] = CustomLayout.fromJson(jsonDecode(racingJson));
+        } catch (_) {
+          _layouts['racing'] = CustomLayout.createRacingDefault();
+        }
+      } else {
+        _layouts['racing'] = CustomLayout.createRacingDefault();
       }
     });
     if (_activeTheme == 'custom') {
@@ -525,6 +564,8 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
       'joystick_right': {'x': _rightStickX, 'y': _rightStickY},
       'touchpad_delta': {'x': _touchpadDeltaX, 'y': _touchpadDeltaY},
       'analog_triggers': _analogTriggers,
+      'analog_l2': _analogL2,
+      'analog_r2': _analogR2,
     };
     client.writeln(jsonEncode(payload));
     
@@ -781,6 +822,167 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
   }
 
   // Shoulders L1/L2 R1/R2 (Top edges)
+  void _updateAnalog(String key, double localDy, double height) {
+    double val = 1.0 - (localDy / height);
+    val = val.clamp(0.0, 1.0);
+    setState(() {
+      if (key == 'L2') _analogL2 = val;
+      if (key == 'R2') _analogR2 = val;
+    });
+  }
+
+  Widget _buildRacingPedal(String key, Color color, bool isLeft) {
+    double analogVal = isLeft ? _analogL2 : _analogR2;
+    return Listener(
+      onPointerDown: (e) {
+        setState(() => _buttons[key] = true);
+        _updateAnalog(key, e.localPosition.dy, 200.0);
+      },
+      onPointerMove: (e) {
+        _updateAnalog(key, e.localPosition.dy, 200.0);
+      },
+      onPointerUp: (e) {
+        setState(() {
+          _buttons[key] = false;
+          if (isLeft) _analogL2 = 0.0; else _analogR2 = 0.0;
+        });
+      },
+      onPointerCancel: (e) {
+        setState(() {
+          _buttons[key] = false;
+          if (isLeft) _analogL2 = 0.0; else _analogR2 = 0.0;
+        });
+      },
+      child: Container(
+        width: 60,
+        height: 200,
+        decoration: BoxDecoration(
+          color: Colors.black54,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white24, width: 2),
+        ),
+        child: Stack(
+          alignment: Alignment.bottomCenter,
+          children: [
+            Container(
+              height: 200 * analogVal,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            Positioned(
+              top: 10,
+              child: Text(key, style: const TextStyle(color: Colors.white54, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaddleShifter(String key, {required bool isLeft}) {
+    bool isPressed = _buttons[key]!;
+    return Listener(
+      onPointerDown: (_) => setState(() => _buttons[key] = true),
+      onPointerUp: (_) => setState(() => _buttons[key] = false),
+      onPointerCancel: (_) => setState(() => _buttons[key] = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 50),
+        width: 100,
+        height: 60,
+        decoration: BoxDecoration(
+          color: isPressed ? Colors.orange.withOpacity(0.5) : Colors.black87,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(isLeft ? 30 : 8),
+            bottomLeft: Radius.circular(isLeft ? 30 : 8),
+            topRight: Radius.circular(!isLeft ? 30 : 8),
+            bottomRight: Radius.circular(!isLeft ? 30 : 8),
+          ),
+          border: Border.all(color: isPressed ? Colors.orange : Colors.white30, width: 2),
+        ),
+        child: Center(
+          child: Text(key, style: TextStyle(color: isPressed ? Colors.orange : Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRacingFaceButtons() {
+    return SizedBox(
+      width: 140,
+      height: 140,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned(top: 0, child: _buildRacingRoundBtn('Triangle', '△', Colors.green)),
+          Positioned(bottom: 0, child: _buildRacingRoundBtn('Cross', '×', Colors.blue)),
+          Positioned(left: 0, child: _buildRacingRoundBtn('Square', '□', Colors.red)),
+          Positioned(right: 0, child: _buildRacingRoundBtn('Circle', '○', Colors.orange)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRacingRoundBtn(String key, String symbol, Color color) {
+    bool isPressed = _buttons[key]!;
+    return Listener(
+      onPointerDown: (_) => setState(() => _buttons[key] = true),
+      onPointerUp: (_) => setState(() => _buttons[key] = false),
+      onPointerCancel: (_) => setState(() => _buttons[key] = false),
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isPressed ? color.withOpacity(0.8) : Colors.black87,
+          border: Border.all(color: color, width: 2),
+        ),
+        child: Center(
+          child: Text(symbol, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRacingDPad() {
+    return SizedBox(
+      width: 130,
+      height: 130,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned(top: 0, child: _buildRacingDpadBtn('DpadUp', Icons.arrow_drop_up)),
+          Positioned(bottom: 0, child: _buildRacingDpadBtn('DpadDown', Icons.arrow_drop_down)),
+          Positioned(left: 0, child: _buildRacingDpadBtn('DpadLeft', Icons.arrow_left)),
+          Positioned(right: 0, child: _buildRacingDpadBtn('DpadRight', Icons.arrow_right)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRacingDpadBtn(String key, IconData icon) {
+    bool isPressed = _buttons[key]!;
+    return Listener(
+      onPointerDown: (_) => setState(() => _buttons[key] = true),
+      onPointerUp: (_) => setState(() => _buttons[key] = false),
+      onPointerCancel: (_) => setState(() => _buttons[key] = false),
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: isPressed ? Colors.white30 : Colors.black54,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white24),
+        ),
+        child: Center(
+          child: Icon(icon, color: Colors.white, size: 28),
+        ),
+      ),
+    );
+  }
+
+
   Widget _buildShoulderButton(String key, String label, {bool isL2R2 = false, bool isLeft = true}) {
     bool isPressed = _buttons[key]!;
     Color glowColor = _activeTheme == 'xbox' ? const Color(0xFF107C10) : (_activeTheme == 'switch' ? (isLeft ? const Color(0xFF00A2D6) : const Color(0xFFE60012)) : const Color(0xFF00439C));
@@ -1014,9 +1216,15 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
         ? 'CENTER'
         : '${degrees.toStringAsFixed(0)}° ${_wheelAngle > 0 ? 'R' : 'L'}';
 
-    return SizedBox(
-      width: 80,
-      height: 48,
+    return GestureDetector(
+      onDoubleTap: () {
+        setState(() {
+          _wheelAngle = 0.0;
+        });
+      },
+      child: SizedBox(
+        width: 80,
+        height: 48,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -1042,8 +1250,9 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildDataRow(String label, String value) {
     return Padding(
@@ -1146,15 +1355,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                         setState(() {
                           _steeringWheelMode = val;
                           _lastGyroTime = null;
-                          if (val && _lastAccel != null) {
-                            // Seed _wheelAngle using absolute gravity (asin) so the
-                            // physical level (horizontal) is ALWAYS exactly 0°.
-                            // We ignore _gyroSensitivity here to avoid massively exaggerating
-                            // slight tilts (which caused the "48° jump" bug).
-                            _wheelAngle = asin((_lastAccel!.y / 9.81).clamp(-1.0, 1.0));
-                          } else {
-                            _wheelAngle = 0.0;
-                          }
+                          _wheelAngle = 0.0; // Start at center to avoid camera bump offset
                         });
                         if (val) {
                           // Start 30 Hz UI timer to repaint the arc indicator
@@ -1180,14 +1381,46 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                         Navigator.push(context, MaterialPageRoute(builder: (_) => LayoutEditorScreen(
                           initialPreset: _activePreset,
                           layouts: _layouts,
+                          actualWidgets: {
+                            'dpad': _buildDPadCluster(),
+                            'face_buttons': _buildFaceButtonsCluster(),
+                            'l3': RepaintBoundary(child: _buildThumbstick('L3')),
+                            'r3': RepaintBoundary(child: _buildThumbstick('R3')),
+                            'l1': _buildShoulderButton('L1', 'L1', isLeft: true),
+                            'l2': _buildShoulderButton('L2', 'L2', isL2R2: true, isLeft: true),
+                            'r1': _buildShoulderButton('R1', 'R1', isLeft: false),
+                            'r2': _buildShoulderButton('R2', 'R2', isL2R2: true, isLeft: false),
+                          },
+                          racingWidgets: {
+                            'dpad': _buildRacingDPad(),
+                            'face_buttons': _buildRacingFaceButtons(),
+                            'l3': RepaintBoundary(child: _buildThumbstick('L3')),
+                            'r3': RepaintBoundary(child: _buildThumbstick('R3')),
+                            'l1': _buildPaddleShifter('L1', isLeft: true),
+                            'l2': _buildRacingPedal('L2', Colors.red, true),
+                            'r1': _buildPaddleShifter('R1', isLeft: false),
+                            'r2': _buildRacingPedal('R2', Colors.green, false),
+                          },
                           onSave: (preset, layout) async {
                             final prefs = await SharedPreferences.getInstance();
                             setState(() {
                               _activePreset = preset;
                               _layouts[preset] = layout;
+                              
+                              if (preset == 'racing' && !_steeringWheelMode) {
+                                _steeringWheelMode = true;
+                                _lastGyroTime = null;
+                                _wheelAngle = 0.0;
+                                _wheelUiTimer?.cancel();
+                                _wheelUiTimer = Timer.periodic(
+                                  const Duration(milliseconds: 33),
+                                  (_) { if (mounted) setState(() {}); },
+                                );
+                              }
                             });
                             await prefs.setString('active_preset', preset);
                             await prefs.setString(preset, jsonEncode(layout.toJson()));
+                            await prefs.setBool('steering_wheel_mode', _steeringWheelMode);
                           },
                         )));
                       },
@@ -1252,15 +1485,33 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
     Widget positionItem(String key, Widget child) {
       final item = layout.items[key] ?? LayoutItem(x: 0.5, y: 0.5);
       return Positioned(
-        left: item.x * size.width - 65 * item.size,
-        top: item.y * size.height - 65 * item.size,
-        child: Opacity(
-          opacity: item.opacity,
-          child: Transform.scale(
-            scale: item.size,
-            child: child,
+        left: item.x * size.width,
+        top: item.y * size.height,
+        child: FractionalTranslation(
+          translation: const Offset(-0.5, -0.5),
+          child: Opacity(
+            opacity: item.opacity,
+            child: Transform.scale(
+              scale: item.size,
+              child: child,
+            ),
           ),
         ),
+      );
+    }
+    
+    if (_activePreset == 'racing') {
+      return Stack(
+        children: [
+          positionItem('l2', _buildRacingPedal('L2', Colors.red, true)),
+          positionItem('l1', _buildPaddleShifter('L1', isLeft: true)),
+          positionItem('r2', _buildRacingPedal('R2', Colors.green, false)),
+          positionItem('r1', _buildPaddleShifter('R1', isLeft: false)),
+          positionItem('dpad', _buildRacingDPad()),
+          positionItem('l3', RepaintBoundary(child: _buildThumbstick('L3'))),
+          positionItem('face_buttons', _buildRacingFaceButtons()),
+          positionItem('r3', RepaintBoundary(child: _buildThumbstick('R3'))),
+        ],
       );
     }
     
@@ -1298,8 +1549,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                 ) 
               : null,
         ),
-        child: SafeArea(
-          child: Stack(
+        child: Stack(
             children: [
               // Top L1/L2 and R1/R2
               if (_activePreset == 'default')
@@ -1489,7 +1739,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                             if (_activePreset == 'default') _buildFaceButtonsCluster(),
                             const SizedBox(height: 20),
                             // R3 Thumbstick — RepaintBoundary (Bug #15: limits rebuild propagation)
-                            RepaintBoundary(child: _buildThumbstick('R3')),
+                            if (_activePreset == 'default') RepaintBoundary(child: _buildThumbstick('R3')),
                           ],
                         ),
                       ),
@@ -1499,7 +1749,6 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
               ),
             ],
           ),
-        ),
       ),
     );
   }
@@ -1590,9 +1839,11 @@ class _WheelArcPainter extends CustomPainter {
 class LayoutEditorScreen extends StatefulWidget {
   final String initialPreset;
   final Map<String, CustomLayout> layouts;
+  final Map<String, Widget> actualWidgets;
+  final Map<String, Widget> racingWidgets;
   final Function(String preset, CustomLayout layout) onSave;
 
-  const LayoutEditorScreen({super.key, required this.initialPreset, required this.layouts, required this.onSave});
+  const LayoutEditorScreen({super.key, required this.initialPreset, required this.layouts, required this.actualWidgets, required this.racingWidgets, required this.onSave});
 
   @override
   State<LayoutEditorScreen> createState() => _LayoutEditorScreenState();
@@ -1602,19 +1853,70 @@ class _LayoutEditorScreenState extends State<LayoutEditorScreen> {
   late String _activePreset;
   late CustomLayout _currentLayout;
   String? _selectedKey;
+  bool _linkShoulders = false;
+  Map<String, String> _presetNames = {
+    'preset_1': 'Preset 1',
+    'preset_2': 'Preset 2',
+    'preset_3': 'Preset 3',
+    'racing': 'F1 Racing',
+  };
 
   @override
   void initState() {
     super.initState();
     _activePreset = widget.initialPreset == 'default' ? 'preset_1' : widget.initialPreset;
     _currentLayout = CustomLayout.fromJson(widget.layouts[_activePreset]?.toJson() ?? CustomLayout.createDefault().toJson());
+    _loadPresetNames();
+  }
+
+  Future<void> _loadPresetNames() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _presetNames['preset_1'] = prefs.getString('preset_1_name') ?? 'Preset 1';
+      _presetNames['preset_2'] = prefs.getString('preset_2_name') ?? 'Preset 2';
+      _presetNames['preset_3'] = prefs.getString('preset_3_name') ?? 'Preset 3';
+      _presetNames['racing'] = prefs.getString('racing_name') ?? 'F1 Racing';
+    });
+  }
+
+  void _renamePreset() {
+    TextEditingController controller = TextEditingController(text: _presetNames[_activePreset]);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Rename Preset"),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: "Preset Name"),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () async {
+              String newName = controller.text.trim();
+              if (newName.isNotEmpty) {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString('${_activePreset}_name', newName);
+                setState(() {
+                  _presetNames[_activePreset] = newName;
+                });
+              }
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
   }
 
   void _switchPreset(String preset) {
     if (preset == 'default') return; // Cannot edit default
     setState(() {
       _activePreset = preset;
-      _currentLayout = CustomLayout.fromJson(widget.layouts[preset]?.toJson() ?? CustomLayout.createDefault().toJson());
+      var def = preset == 'racing' ? CustomLayout.createRacingDefault() : CustomLayout.createDefault();
+      _currentLayout = CustomLayout.fromJson(widget.layouts[preset]?.toJson() ?? def.toJson());
       _selectedKey = null;
     });
   }
@@ -1639,49 +1941,62 @@ class _LayoutEditorScreenState extends State<LayoutEditorScreen> {
     Navigator.pop(context);
   }
 
-  Widget _buildEditorItem(String key, String label, IconData icon) {
+  Widget _buildEditorItem(String key) {
     final item = _currentLayout.items[key] ?? LayoutItem(x: 0.5, y: 0.5);
     final size = MediaQuery.of(context).size;
     final isSelected = _selectedKey == key;
+    
+    final bool isRacing = _activePreset == 'racing';
+    final activeWidgets = isRacing ? widget.racingWidgets : widget.actualWidgets;
+    final actualWidget = activeWidgets[key] ?? const SizedBox(width: 130, height: 130);
 
     return Positioned(
-      left: item.x * size.width - 65 * item.size,
-      top: item.y * size.height - 65 * item.size,
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _selectedKey = isSelected ? null : key;
-          });
-        },
-        onPanUpdate: (details) {
-          setState(() {
-            _selectedKey = key;
-            item.x += details.delta.dx / size.width;
-            item.y += details.delta.dy / size.height;
-            item.x = item.x.clamp(0.05, 0.95);
-            item.y = item.y.clamp(0.05, 0.95);
-          });
-        },
-        child: Opacity(
-          opacity: item.opacity,
-          child: Transform.scale(
-            scale: item.size,
-            child: Container(
-              width: 130,
-              height: 130,
-              decoration: BoxDecoration(
-                border: isSelected ? Border.all(color: Colors.yellowAccent, width: 3 / item.size) : Border.all(color: Colors.white54, width: 2, style: BorderStyle.solid),
-                color: Colors.black45,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(icon, color: Colors.white, size: 40),
-                    const SizedBox(height: 8),
-                    Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                  ],
+      left: item.x * size.width,
+      top: item.y * size.height,
+      child: FractionalTranslation(
+        translation: const Offset(-0.5, -0.5),
+        child: GestureDetector(
+          onTap: () {
+            setState(() {
+              _selectedKey = isSelected ? null : key;
+            });
+          },
+          onPanUpdate: (details) {
+            setState(() {
+              _selectedKey = key;
+              double dx = details.delta.dx / size.width;
+              double dy = details.delta.dy / size.height;
+              item.x = (item.x + dx).clamp(0.0, 1.0);
+              item.y = (item.y + dy).clamp(0.0, 1.0);
+
+              if (_linkShoulders) {
+                if (key == 'l1' || key == 'l2') {
+                  String linkedKey = key == 'l1' ? 'l2' : 'l1';
+                  if (_currentLayout.items.containsKey(linkedKey)) {
+                    _currentLayout.items[linkedKey]!.x = (_currentLayout.items[linkedKey]!.x + dx).clamp(0.0, 1.0);
+                    _currentLayout.items[linkedKey]!.y = (_currentLayout.items[linkedKey]!.y + dy).clamp(0.0, 1.0);
+                  }
+                } else if (key == 'r1' || key == 'r2') {
+                  String linkedKey = key == 'r1' ? 'r2' : 'r1';
+                  if (_currentLayout.items.containsKey(linkedKey)) {
+                    _currentLayout.items[linkedKey]!.x = (_currentLayout.items[linkedKey]!.x + dx).clamp(0.0, 1.0);
+                    _currentLayout.items[linkedKey]!.y = (_currentLayout.items[linkedKey]!.y + dy).clamp(0.0, 1.0);
+                  }
+                }
+              }
+            });
+          },
+          child: Opacity(
+            opacity: item.opacity,
+            child: Transform.scale(
+              scale: item.size,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: isSelected ? Border.all(color: Colors.yellowAccent, width: 3 / item.size) : Border.all(color: Colors.transparent),
+                ),
+                // Ignore pointer events on the actual widget so gestures fall through to the editor's GestureDetector
+                child: IgnorePointer(
+                  child: actualWidget,
                 ),
               ),
             ),
@@ -1705,70 +2020,106 @@ class _LayoutEditorScreenState extends State<LayoutEditorScreen> {
       },
       child: Scaffold(
         backgroundColor: const Color(0xFF222222),
-        body: SafeArea(
-          child: Stack(
+        body: Stack(
             children: [
-              _buildEditorItem('dpad', 'D-Pad', Icons.gamepad),
-              _buildEditorItem('face_buttons', 'Action', Icons.control_camera),
-              _buildEditorItem('l3', 'L-Stick', Icons.radio_button_checked),
-              _buildEditorItem('r3', 'R-Stick', Icons.radio_button_checked),
-              _buildEditorItem('l1', 'L1', Icons.crop_7_5),
-              _buildEditorItem('l2', 'L2', Icons.crop_5_4),
-              _buildEditorItem('r1', 'R1', Icons.crop_7_5),
-              _buildEditorItem('r2', 'R2', Icons.crop_5_4),
+              _buildEditorItem('dpad'),
+              _buildEditorItem('face_buttons'),
+              _buildEditorItem('l3'),
+              _buildEditorItem('r3'),
+              _buildEditorItem('l1'),
+              _buildEditorItem('l2'),
+              _buildEditorItem('r1'),
+              _buildEditorItem('r2'),
               
-              Positioned(
-                top: 0, left: 0, right: 0,
+              Align(
+                alignment: Alignment.center,
                 child: Container(
-                  color: Colors.black87,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Row(
-                    children: [
-                      IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () async {
-                        if (await _onWillPop()) {
-                          if (context.mounted) Navigator.pop(context);
-                        }
-                      }),
-                      const SizedBox(width: 16),
-                      const Text("Layout Editor", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                      const Spacer(),
-                      DropdownButton<String>(
-                        value: _activePreset,
-                        dropdownColor: Colors.black87,
-                        style: const TextStyle(color: Colors.white),
-                        underline: Container(),
-                        items: const [
-                          DropdownMenuItem(value: 'preset_1', child: Text('Preset 1')),
-                          DropdownMenuItem(value: 'preset_2', child: Text('Preset 2')),
-                          DropdownMenuItem(value: 'preset_3', child: Text('Preset 3')),
-                        ],
-                        onChanged: (val) {
-                          if (val != null) _switchPreset(val);
-                        },
-                      ),
-                      const SizedBox(width: 16),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00439C), foregroundColor: Colors.white),
-                        icon: const Icon(Icons.save),
-                        label: const Text("Save"),
-                        onPressed: _save,
-                      ),
-                      const SizedBox(width: 8),
-                      OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white54)),
-                        icon: const Icon(Icons.refresh, size: 18),
-                        label: const Text("Reset Preset"),
-                        onPressed: () {
-                           setState(() {
-                             _currentLayout = CustomLayout.createDefault();
-                             _selectedKey = null;
-                           });
-                        },
-                      ),
-                    ],
+                    decoration: BoxDecoration(
+                      color: Colors.black87.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: Colors.white24, width: 1),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () async {
+                            if (await _onWillPop()) {
+                              if (context.mounted) Navigator.pop(context);
+                            }
+                          }
+                        ),
+                        const SizedBox(width: 8),
+                        DropdownButton<String>(
+                          value: _activePreset,
+                          dropdownColor: Colors.black87,
+                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                          iconSize: 18,
+                          isDense: true,
+                          underline: const SizedBox(),
+                          items: [
+                            DropdownMenuItem(value: 'preset_1', child: Text(_presetNames['preset_1']!)),
+                            DropdownMenuItem(value: 'preset_2', child: Text(_presetNames['preset_2']!)),
+                            DropdownMenuItem(value: 'preset_3', child: Text(_presetNames['preset_3']!)),
+                            DropdownMenuItem(value: 'racing', child: Text(_presetNames['racing']!)),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) _switchPreset(val);
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.white70, size: 16),
+                          visualDensity: VisualDensity.compact,
+                          tooltip: 'Rename Preset',
+                          onPressed: _renamePreset,
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF00439C), 
+                            foregroundColor: Colors.white,
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                          ),
+                          icon: const Icon(Icons.save, size: 16),
+                          label: const Text("Save", style: TextStyle(fontSize: 12)),
+                          onPressed: _save,
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: Icon(_linkShoulders ? Icons.link : Icons.link_off, color: _linkShoulders ? Colors.blueAccent : Colors.white70, size: 20),
+                          visualDensity: VisualDensity.compact,
+                          tooltip: 'Link L1/L2 and R1/R2',
+                          onPressed: () {
+                            setState(() {
+                              _linkShoulders = !_linkShoulders;
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white, 
+                            side: const BorderSide(color: Colors.white54),
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                          ),
+                          icon: const Icon(Icons.refresh, size: 16),
+                          label: const Text("Reset", style: TextStyle(fontSize: 12)),
+                          onPressed: () {
+                             setState(() {
+                               _currentLayout = CustomLayout.createDefault();
+                               _selectedKey = null;
+                             });
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
 
               if (_selectedKey != null)
                 Positioned(
@@ -1798,7 +2149,18 @@ class _LayoutEditorScreenState extends State<LayoutEditorScreen> {
                                 max: 2.0,
                                 activeColor: Colors.blueAccent,
                                 onChanged: (val) {
-                                  setState(() => _currentLayout.items[_selectedKey!]!.size = val);
+                                  setState(() {
+                                    _currentLayout.items[_selectedKey!]!.size = val;
+                                    if (_linkShoulders) {
+                                      if (_selectedKey == 'l1' || _selectedKey == 'l2') {
+                                        String linkedKey = _selectedKey == 'l1' ? 'l2' : 'l1';
+                                        if (_currentLayout.items.containsKey(linkedKey)) _currentLayout.items[linkedKey]!.size = val;
+                                      } else if (_selectedKey == 'r1' || _selectedKey == 'r2') {
+                                        String linkedKey = _selectedKey == 'r1' ? 'r2' : 'r1';
+                                        if (_currentLayout.items.containsKey(linkedKey)) _currentLayout.items[linkedKey]!.size = val;
+                                      }
+                                    }
+                                  });
                                 },
                               ),
                             ),
@@ -1815,7 +2177,18 @@ class _LayoutEditorScreenState extends State<LayoutEditorScreen> {
                                 max: 1.0,
                                 activeColor: Colors.blueAccent,
                                 onChanged: (val) {
-                                  setState(() => _currentLayout.items[_selectedKey!]!.opacity = val);
+                                  setState(() {
+                                    _currentLayout.items[_selectedKey!]!.opacity = val;
+                                    if (_linkShoulders) {
+                                      if (_selectedKey == 'l1' || _selectedKey == 'l2') {
+                                        String linkedKey = _selectedKey == 'l1' ? 'l2' : 'l1';
+                                        if (_currentLayout.items.containsKey(linkedKey)) _currentLayout.items[linkedKey]!.opacity = val;
+                                      } else if (_selectedKey == 'r1' || _selectedKey == 'r2') {
+                                        String linkedKey = _selectedKey == 'r1' ? 'r2' : 'r1';
+                                        if (_currentLayout.items.containsKey(linkedKey)) _currentLayout.items[linkedKey]!.opacity = val;
+                                      }
+                                    }
+                                  });
                                 },
                               ),
                             ),
@@ -1827,7 +2200,6 @@ class _LayoutEditorScreenState extends State<LayoutEditorScreen> {
                 ),
             ],
           ),
-        ),
       ),
     );
   }

@@ -54,8 +54,12 @@ def get_bluetooth_pan_ip() -> str:
     """Auto-detects the phone's gateway IP on Windows Bluetooth Network Connection using ipconfig."""
     try:
         import subprocess
+        import os
         import re
-        out = subprocess.check_output(['ipconfig'], text=True, errors='ignore')
+        kwargs = {}
+        if os.name == 'nt':
+            kwargs['creationflags'] = getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000)
+        out = subprocess.check_output(['ipconfig'], text=True, errors='ignore', **kwargs)
         lines = out.split('\n')
         in_bt = False
         ip_address = None

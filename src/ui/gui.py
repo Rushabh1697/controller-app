@@ -788,7 +788,10 @@ class ControllerGUI:
                                         lt_raw = bool(buttons.get('L2'))
                                         rt_raw = bool(buttons.get('R2'))
                                         
-                                        if is_analog:
+                                        if 'analog_l2' in payload:
+                                            final_lt = float(payload['analog_l2'])
+                                            final_rt = float(payload.get('analog_r2', 0.0))
+                                        elif is_analog:
                                             if lt_raw: self.l2_pressed_time = min(0.5, self.l2_pressed_time + 0.01)
                                             else: self.l2_pressed_time = 0.0 # instant release
                                             

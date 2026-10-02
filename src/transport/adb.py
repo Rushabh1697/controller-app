@@ -5,6 +5,10 @@ import re
 from typing import List, Dict, Any
 from .interface import TransportInterface
 
+_SUBPROCESS_KWARGS = {}
+if os.name == 'nt':
+    _SUBPROCESS_KWARGS['creationflags'] = getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000)
+
 class AdbTransport(TransportInterface):
     def __init__(self):
         self.adb_path = self._resolve_adb_path()
@@ -25,7 +29,7 @@ class AdbTransport(TransportInterface):
         return "adb"
     def list_devices(self) -> List[Dict[str, Any]]:
         try:
-            result = subprocess.run([self.adb_path, "devices", "-l"], capture_output=True, text=True, check=True)
+            result = subprocess.run([self.adb_path, "devices", "-l"], capture_output=True, text=True, check=True, **_SUBPROCESS_KWARGS)
             lines = result.stdout.strip().split('\n')
             devices = []
             for line in lines[1:]: # Skip header "List of devices attached"
@@ -57,7 +61,7 @@ class AdbTransport(TransportInterface):
         info = {}
         for prop, key in properties.items():
             try:
-                result = subprocess.run([self.adb_path, "-s", device_id, "shell", "getprop", prop], capture_output=True, text=True, check=True)
+                result = subprocess.run([self.adb_path, "-s", device_id, "shell", "getprop", prop], capture_output=True, text=True, check=True, **_SUBPROCESS_KWARGS)
                 info[key] = result.stdout.strip()
             except subprocess.CalledProcessError as e:
                 # Handle error if device disconnects or is unauthorized
@@ -84,7 +88,7 @@ class AdbTransport(TransportInterface):
 
     def get_sensor_dump(self, device_id: str) -> str:
         try:
-            result = subprocess.run([self.adb_path, "-s", device_id, "shell", "dumpsys", "sensorservice"], capture_output=True, text=True, check=True)
+            result = subprocess.run([self.adb_path, "-s", device_id, "shell", "dumpsys", "sensorservice"], capture_output=True, text=True, check=True, **_SUBPROCESS_KWARGS)
             return result.stdout
         except subprocess.CalledProcessError as e:
              if "unauthorized" in e.stderr:
@@ -97,7 +101,7 @@ class AdbTransport(TransportInterface):
         import shlex
         try:
             cmd = [self.adb_path, "-s", device_id, "shell"] + shlex.split(command)  # ✅ handles quoted args
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True, **_SUBPROCESS_KWARGS)
             return result.stdout
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Command failed: {e.stderr}")
@@ -105,13 +109,13 @@ class AdbTransport(TransportInterface):
     def open_stream(self, device_id: str, local_port: int, remote_port: int):
         try:
             # adb forward tcp:local tcp:remote
-            subprocess.run([self.adb_path, "-s", device_id, "forward", f"tcp:{local_port}", f"tcp:{remote_port}"], capture_output=True, text=True, check=True)
+            subprocess.run([self.adb_path, "-s", device_id, "forward", f"tcp:{local_port}", f"tcp:{remote_port}"], capture_output=True, text=True, check=True, **_SUBPROCESS_KWARGS)
             return True
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Forwarding failed: {e.stderr}")
             
     def close_stream(self, device_id: str, local_port: int):
         try:
-            subprocess.run([self.adb_path, "-s", device_id, "forward", "--remove", f"tcp:{local_port}"], capture_output=True, text=True, check=True)
+            subprocess.run([self.adb_path, "-s", device_id, "forward", "--remove", f"tcp:{local_port}"], capture_output=True, text=True, check=True, **_SUBPROCESS_KWARGS)
         except subprocess.CalledProcessError:
             pass

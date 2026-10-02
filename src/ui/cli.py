@@ -314,8 +314,16 @@ class CLI:
                                     # Analog Triggers (L2 / R2)
                                     lt_pressed = bool(buttons.get('L2'))
                                     rt_pressed = bool(buttons.get('R2'))
-                                    gamepad.left_trigger_float(value_float=1.0 if lt_pressed else 0.0)
-                                    gamepad.right_trigger_float(value_float=1.0 if rt_pressed else 0.0)
+                                    
+                                    if 'analog_l2' in payload:
+                                        final_lt = float(payload['analog_l2'])
+                                        final_rt = float(payload.get('analog_r2', 0.0))
+                                    else:
+                                        final_lt = 1.0 if lt_pressed else 0.0
+                                        final_rt = 1.0 if rt_pressed else 0.0
+                                        
+                                    gamepad.left_trigger_float(value_float=final_lt)
+                                    gamepad.right_trigger_float(value_float=final_rt)
                                     
                                     # Face and Shoulder buttons
                                     ds4_map = {

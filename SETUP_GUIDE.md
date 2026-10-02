@@ -110,3 +110,22 @@ GyroPad allows you to map different phone buttons to different Xbox buttons depe
 
 ### ❌ Issue: Certain buttons (like L1/R1) behave weirdly in menus.
 **Fix:** Open **Manage Profiles** and ensure you haven't mapped multiple phone buttons to the exact same Xbox button by accident.
+
+
+## Custom Control Layouts
+You can now fully customize your mobile controller layout!
+1. Open the **Settings** menu in the app (gear icon).
+2. Tap the **Custom Layouts** button.
+3. Drag any button to move it. Tap a button to resize it or change its opacity.
+4. You can save up to 3 different profiles using the **Preset** dropdown at the top.
+5. Tap **Reset** at any time to restore the default positions.
+6. Note: Resizing buttons will now keep them perfectly centered in place without shifting off-target!
+7. The editor toolbar is now located in the center of the screen to ensure it never covers your buttons while editing.
+8. **Link Shoulders**: You can click the "Link" icon in the layout editor toolbar to lock L1/L2 and R1/R2 together. When linked, resizing or moving one shoulder button will automatically resize and move the other!
+9. **Rename Presets**: Click the pencil icon next to the preset dropdown to give your presets custom names for different games (e.g., "F1", "Rocket League").
+10. Controls can now be dragged completely to the edges of the screen, utilizing the full edge-to-edge display of your phone!
+### F1 Racing Mode
+1. **Activate Racing Mode**: Open the Settings menu, go to **Custom Layouts**, and select **F1 Racing** from the dropdown menu in the editor.
+2. **Auto-Steering**: When you select the Racing preset, Gyro Steering Wheel Mode will automatically activate.
+3. **Analog Pedals**: Throttle (R2) and Brake (L2) are now vertical sliders. Slide your thumb up or down to send precise analog input to the PC.
+4. **F1 Dashboard**: Paddle shifters, DRS, Overtake, and MFD (Diff/Bias) buttons have custom skins. Just like the standard layout, you can move and resize all of these racing elements!
