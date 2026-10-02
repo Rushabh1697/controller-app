@@ -128,4 +128,5 @@ You can now fully customize your mobile controller layout!
 1. **Activate Racing Mode**: Open the Settings menu, go to **Custom Layouts**, and select **F1 Racing** from the dropdown menu in the editor.
 2. **Auto-Steering**: When you select the Racing preset, Gyro Steering Wheel Mode will automatically activate.
 3. **Analog Pedals**: Throttle (R2) and Brake (L2) are now vertical sliders. Slide your thumb up or down to send precise analog input to the PC.
-4. **F1 Dashboard**: Paddle shifters, DRS, Overtake, and MFD (Diff/Bias) buttons have custom skins. Just like the standard layout, you can move and resize all of these racing elements!
+4. **F1 Dashboard**: Paddle shifters, face buttons, and the D-Pad have sleek, minimalist skins featuring geometric shapes and arrows. Just like the standard layout, you can move and resize all of these racing elements!
+5. **Recenter Steering**: Because gyroscopes can occasionally drift over time during intense racing, simply double-tap the Steering Arc indicator at the top of the screen at any time to instantly snap the steering wheel back to exactly 0.0° dead center.

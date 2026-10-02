@@ -282,8 +282,10 @@ When navigating to `https://github.com/Rushabh1697/controller-app/blob/main/Rele
 - **Racing / F1 Mode**:
   - Added a dedicated "F1 Racing" layout preset.
   - Replaced standard L2/R2 buttons with vertical slider pedals (true analog float values sent to the Windows host).
-  - Replaced standard L1/R1 buttons with wide paddle shifters.
-  - Reskinned the face buttons (A, B, X, Y) to feature primary F1 telemetry functions (Radio, Overtake, Camera, DRS).
-  - Reskinned the D-Pad to feature car setup functions (Diff, Bias).
+  - Replaced standard L1/R1 buttons with wide paddle shifters, labeled simply L1 and R1.
+  - Replaced the D-Pad and face buttons with sleek circular variants using standard geometric shapes and arrows for a clean aesthetic.
   - Saving this preset automatically enables the Gyro Steering Wheel Mode (±90° wheel arc).
   - The PC host `cli.py` and `gui.py` have been upgraded to parse `analog_l2` and `analog_r2` directly as floats.
+- **Steering Wheel Initial Angle Jump Fix**: The camera bump on modern phones caused `asin(lastAccel.y / 9.81)` to incorrectly seed the initial wheel angle to ~15° when the phone was laid flat on a table. Removed the gravity seeding completely so `_wheelAngle` always starts at `0.0`.
+- **Double-Tap to Center**: Added a double-tap gesture to the top Steering Arc indicator to allow users to manually recenter the wheel to 0.0 at any time during gameplay to combat gyro drift.
+- **PC Host Flashing Terminals Fix**: On Windows, `subprocess.run` (used for background `adb` and `ipconfig` connection checks) pops up and instantly closes a blank terminal window when the host is run as a windowless application (`.pyw` or bundled exe). Added `creationflags=subprocess.CREATE_NO_WINDOW` (0x08000000) to all subprocess calls in `adb.py` and `wifi.py` to make background checks completely invisible.
