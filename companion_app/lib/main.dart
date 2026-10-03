@@ -564,10 +564,18 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
       'joystick_right': {'x': _rightStickX, 'y': _rightStickY},
       'touchpad_delta': {'x': _touchpadDeltaX, 'y': _touchpadDeltaY},
       'analog_triggers': _analogTriggers,
-      'analog_l2': _analogL2,
-      'analog_r2': _analogR2,
     };
-    client.writeln(jsonEncode(payload));
+    
+    if (_activePreset == 'racing') {
+      payload['analog_l2'] = _analogL2;
+      payload['analog_r2'] = _analogR2;
+    }
+
+    try {
+      client.writeln(jsonEncode(payload));
+    } catch (e) {
+      // Ignore socket write errors
+    }
     
     _touchpadDeltaX = 0.0;
     _touchpadDeltaY = 0.0;
@@ -833,21 +841,21 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
 
   Widget _buildRacingPedal(String key, Color color, bool isLeft) {
     double analogVal = isLeft ? _analogL2 : _analogR2;
-    return Listener(
-      onPointerDown: (e) {
+    return GestureDetector(
+      onPanDown: (e) {
         setState(() => _buttons[key] = true);
         _updateAnalog(key, e.localPosition.dy, 200.0);
       },
-      onPointerMove: (e) {
+      onPanUpdate: (e) {
         _updateAnalog(key, e.localPosition.dy, 200.0);
       },
-      onPointerUp: (e) {
+      onPanEnd: (e) {
         setState(() {
           _buttons[key] = false;
           if (isLeft) _analogL2 = 0.0; else _analogR2 = 0.0;
         });
       },
-      onPointerCancel: (e) {
+      onPanCancel: () {
         setState(() {
           _buttons[key] = false;
           if (isLeft) _analogL2 = 0.0; else _analogR2 = 0.0;
@@ -1407,16 +1415,7 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                               _activePreset = preset;
                               _layouts[preset] = layout;
                               
-                              if (preset == 'racing' && !_steeringWheelMode) {
-                                _steeringWheelMode = true;
-                                _lastGyroTime = null;
-                                _wheelAngle = 0.0;
-                                _wheelUiTimer?.cancel();
-                                _wheelUiTimer = Timer.periodic(
-                                  const Duration(milliseconds: 33),
-                                  (_) { if (mounted) setState(() {}); },
-                                );
-                              }
+
                             });
                             await prefs.setString('active_preset', preset);
                             await prefs.setString(preset, jsonEncode(layout.toJson()));

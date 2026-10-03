@@ -14,7 +14,7 @@ class ControllerGUI:
     def __init__(self, root, service: DetectorService):
         self.root = root
         self.service = service
-        self.root.title("GyroPad Desktop Host")
+        self.root.title("GyroPad Desktop Host v1.4.0")
         self.root.geometry("820x720")
         self.root.minsize(700, 580)
         

@@ -284,8 +284,12 @@ When navigating to `https://github.com/Rushabh1697/controller-app/blob/main/Rele
   - Replaced standard L2/R2 buttons with vertical slider pedals (true analog float values sent to the Windows host).
   - Replaced standard L1/R1 buttons with wide paddle shifters, labeled simply L1 and R1.
   - Replaced the D-Pad and face buttons with sleek circular variants using standard geometric shapes and arrows for a clean aesthetic.
-  - Saving this preset automatically enables the Gyro Steering Wheel Mode (±90° wheel arc).
   - The PC host `cli.py` and `gui.py` have been upgraded to parse `analog_l2` and `analog_r2` directly as floats.
 - **Steering Wheel Initial Angle Jump Fix**: The camera bump on modern phones caused `asin(lastAccel.y / 9.81)` to incorrectly seed the initial wheel angle to ~15° when the phone was laid flat on a table. Removed the gravity seeding completely so `_wheelAngle` always starts at `0.0`.
 - **Double-Tap to Center**: Added a double-tap gesture to the top Steering Arc indicator to allow users to manually recenter the wheel to 0.0 at any time during gameplay to combat gyro drift.
 - **PC Host Flashing Terminals Fix**: On Windows, `subprocess.run` (used for background `adb` and `ipconfig` connection checks) pops up and instantly closes a blank terminal window when the host is run as a windowless application (`.pyw` or bundled exe). Added `creationflags=subprocess.CREATE_NO_WINDOW` (0x08000000) to all subprocess calls in `adb.py` and `wifi.py` to make background checks completely invisible.
+
+## 13. Recent Fixes & Additions (v1.4.1 Hotfix)
+- **F1 Pedal Stuck & App Crash Fix**: Replaced the raw `Listener` on the F1 Racing Pedals with a `GestureDetector` (`onPanDown/Update/End/Cancel`). Previously, sliding the thumb completely off the widget or triggering an OS edge gesture caused the raw listener to miss the `onPointerUp` event, permanently sticking the throttle at 1.0. This caused the PC host to disconnect, which in turn caused the Flutter app to crash due to an unhandled socket write exception.
+- **TCP Socket Safety**: Wrapped `client.writeln(jsonEncode(payload))` in a `try-catch` block. The mobile app will no longer crash if the PC unexpectedly drops the connection.
+- **Standard Trigger Override Bug Fix**: Fixed a critical bug introduced in v1.4.0 where the Flutter app was hardcoding `analog_l2` and `analog_r2` into the JSON payload on every frame. The PC host interpreted this as active F1 pedals and completely ignored standard digital L2/R2 presses. The analog keys are now conditionally injected only if `_activePreset == 'racing'`.
