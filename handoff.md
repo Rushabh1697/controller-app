@@ -24,7 +24,7 @@
 ---
 
 ## 2. Current Status & Where We Left Off
-Currently, all major milestones including v1.3.0 features have been completed.
+Currently, all major milestones including v1.4.1 features and hotfixes have been completed.
 The Python host (`GyroPadHost-Windows.exe`) is bundled as a single executable without console popups, including hidden dependencies for `qrcode` and `vgamepad`. The Flutter Companion App (`GyroPad-Android.apk`) features multiple skin themes (PS5, Xbox, Switch, Custom). The Xbox mapping duplicate cancellation bug has been resolved.
 
 The app supports:
@@ -40,7 +40,7 @@ The app supports:
 - **Custom Control Layouts**: True WYSIWYG visual layout editor to reposition, resize, and set opacity for individual buttons (L1/L2/R1/R2 split), with 3 saveable presets and compact top-bar (v1.4.0)
 - **Host Reconnect Stability**: Explicit socket lifecycle cleanup ensures seamless reconnections without 'BUSY' deadlocks (v1.4.0)
 
-**v1.3.0 committed and tagged on GitHub. v1.4.0 feature complete in companion_app/lib/main.dart and gui.py, pending APK build & release.**
+**v1.4.1 feature complete and fully built. Both the Android APK and Windows Executable have been compiled and placed in the `Release/` and `website/assets/` directories.**
 
 ## 3. Directory & File Structure
 
