@@ -1,11 +1,13 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = []
+datas = [('website/assets/logo.png', '.')]
 binaries = []
-hiddenimports = ['src.transport.adb', 'src.transport.wifi', 'src.service.detector', 'src.ui.gui', 'src.ui.cli']
+hiddenimports = ['src.transport.adb', 'src.transport.wifi', 'src.service.detector', 'src.ui.gui', 'src.ui.cli', 'sv_ttk']
 tmp_ret = collect_all('vgamepad')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+tmp_ret2 = collect_all('sv_ttk')
+datas += tmp_ret2[0]; binaries += tmp_ret2[1]; hiddenimports += tmp_ret2[2]
 
 
 a = Analysis(
@@ -30,6 +32,7 @@ exe = EXE(
     a.datas,
     [],
     name='GyroPadHost-Windows',
+    icon='website/assets/logo.ico',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

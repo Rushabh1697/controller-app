@@ -18,6 +18,9 @@ class ControllerGUI:
         self.root.geometry("820x720")
         self.root.minsize(700, 580)
         
+        # Apply modern styling and logo
+        self._apply_modern_theme()
+        
         self.device = None
         self.streaming = False
         self.thread = None
@@ -38,22 +41,89 @@ class ControllerGUI:
         self.monitor_thread = threading.Thread(target=self.monitor_active_window, daemon=True)
         self.monitor_thread.start()
         
+    def _apply_modern_theme(self):
+        # 1. Load and apply the mobile app logo
+        try:
+            import os
+            import sys
+            
+            if getattr(sys, 'frozen', False):
+                # Running as PyInstaller Bundle
+                base_path = sys._MEIPASS
+                icon_path = os.path.join(base_path, 'logo.png')
+            else:
+                # Running as normal Python script
+                base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+                icon_path = os.path.abspath(os.path.join(base_path, 'website', 'assets', 'logo.png'))
+                
+            if os.path.exists(icon_path):
+                self._window_icon = tk.PhotoImage(file=icon_path)
+                self.root.iconphoto(False, self._window_icon)
+        except Exception as e:
+            print(f"Could not load icon: {e}")
+
+        # 2. Modern Font and Styling
+        try:
+            import sv_ttk
+            sv_ttk.set_theme("dark")
+            
+            # The terminal box still needs dark mode colors since it's a standard tk.Text
+            self.root.option_add("*Text.background", "#1E1E1E")
+            self.root.option_add("*Text.foreground", "#D4D4D4")
+            self.root.option_add("*Text.selectBackground", "#264F78")
+            
+            # Set global font to Segoe UI
+            style = ttk.Style()
+            default_font = ("Segoe UI", 10)
+            style.configure(".", font=default_font)
+            self.root.option_add("*TCombobox*Listbox.font", default_font)
+            self.root.option_add("*font", default_font)
+        except ImportError:
+            pass
+
     def create_widgets(self):
-        # Top Frame: Device Connection & Controls
-        self.frame_top = ttk.LabelFrame(self.root, text="Device Connection & Controls")
-        self.frame_top.pack(fill=tk.X, padx=10, pady=5)
+        # Hero Header
+        self.frame_hero = ttk.Frame(self.root)
+        self.frame_hero.pack(fill=tk.X, padx=20, pady=(20, 10))
         
-        # Row 1: Connection status, Transport mode & Refresh button
+        if hasattr(self, '_window_icon'):
+            self._hero_icon = self._window_icon.subsample(2, 2)
+            lbl_logo = ttk.Label(self.frame_hero, image=self._hero_icon)
+            lbl_logo.pack(side=tk.LEFT, padx=(0, 15))
+            
+        lbl_title = ttk.Label(self.frame_hero, text="GYROPAD", font=("Segoe UI", 32, "bold"), foreground="#0078D4")
+        lbl_title.pack(side=tk.LEFT)
+        lbl_subtitle = ttk.Label(self.frame_hero, text="HOST", font=("Segoe UI", 32, "normal"), foreground="#AAAAAA")
+        lbl_subtitle.pack(side=tk.LEFT, padx=(8, 0))
+
+        # Main 2-Column Dashboard Layout
+        self.frame_dashboard = ttk.Frame(self.root)
+        self.frame_dashboard.pack(fill=tk.BOTH, expand=True, padx=20, pady=5)
+        
+        # Left Column (Controls & Connection)
+        self.col_left = ttk.Frame(self.frame_dashboard)
+        self.col_left.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
+        
+        # Right Column (Config & Terminal)
+        self.col_right = ttk.Frame(self.frame_dashboard)
+        self.col_right.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(10, 0))
+
+        # --- LEFT COLUMN ---
+        self.frame_top = ttk.LabelFrame(self.col_left, text="Device Connection")
+        self.frame_top.pack(fill=tk.X, pady=(0, 15))
+        
         f_status = ttk.Frame(self.frame_top)
-        f_status.pack(fill=tk.X, padx=10, pady=(8, 4))
+        f_status.pack(fill=tk.X, padx=15, pady=10)
         
-        self.lbl_status = ttk.Label(f_status, text="Status: Disconnected", font=("Arial", 11, "bold"))
+        self.lbl_status = ttk.Label(f_status, text="Status: Disconnected", font=("Segoe UI", 12, "bold"))
         self.lbl_status.pack(side=tk.LEFT)
         
         self.btn_refresh = ttk.Button(f_status, text="Refresh", command=self.refresh_device)
-        self.btn_refresh.pack(side=tk.RIGHT, padx=(5, 0))
+        self.btn_refresh.pack(side=tk.RIGHT)
         
-        # Smart detect initial mode: check if BT PAN has an active gateway
+        f_mode = ttk.Frame(self.frame_top)
+        f_mode.pack(fill=tk.X, padx=15, pady=(0, 10))
+        
         from src.transport.wifi import get_bluetooth_pan_ip, WifiTransport
         init_mode = "USB (Cable)"
         if hasattr(self.service.transport, "transport_name"):
@@ -67,92 +137,119 @@ class ControllerGUI:
                 self.service.transport = WifiTransport(bt_ip, transport_name="Bluetooth")
                 init_mode = "Bluetooth (PAN)"
 
+        ttk.Label(f_mode, text="Transport Mode:").pack(side=tk.LEFT)
         self.transport_var = tk.StringVar(value=init_mode)
-        self.combo_transport = ttk.Combobox(f_status, textvariable=self.transport_var, values=["USB (Cable)", "Bluetooth (PAN)", "Wi-Fi"], state="readonly", width=16)
-        self.combo_transport.pack(side=tk.RIGHT, padx=5)
+        self.combo_transport = ttk.Combobox(f_mode, textvariable=self.transport_var, values=["USB (Cable)", "Bluetooth (PAN)", "Wi-Fi"], state="readonly", width=18)
+        self.combo_transport.pack(side=tk.RIGHT)
         self.combo_transport.bind("<<ComboboxSelected>>", self.on_transport_change)
         
-        ttk.Label(f_status, text="Mode:").pack(side=tk.RIGHT, padx=2)
-        
-        # Row 2: 4-Digit PIN & Start Controller
         f_controls = ttk.Frame(self.frame_top)
-        f_controls.pack(fill=tk.X, padx=10, pady=(4, 10))
+        f_controls.pack(fill=tk.X, padx=15, pady=(0, 15))
         
-        ttk.Label(f_controls, text="4-Digit PIN:", font=("Arial", 10, "bold")).pack(side=tk.LEFT, padx=(0, 6))
+        ttk.Label(f_controls, text="PIN:", font=("Segoe UI", 10, "bold")).pack(side=tk.LEFT)
         self.pin_var = tk.StringVar()
-        self.pin_entry = ttk.Entry(f_controls, textvariable=self.pin_var, width=8, font=("Consolas", 12, "bold"), justify="center")
-        self.pin_entry.pack(side=tk.LEFT, padx=(0, 15))
+        self.pin_entry = ttk.Entry(f_controls, textvariable=self.pin_var, width=6, font=("Consolas", 14, "bold"), justify="center")
+        self.pin_entry.pack(side=tk.LEFT, padx=10)
         self.pin_entry.bind("<Return>", lambda e: self.toggle_stream())
         
-        self.btn_start = ttk.Button(f_controls, text="Start Controller", command=self.toggle_stream, state=tk.DISABLED)
-        self.btn_start.pack(side=tk.LEFT, padx=5)
+        self.btn_start = ttk.Button(f_controls, text="START CONTROLLER", command=self.toggle_stream, state=tk.DISABLED)
+        self.btn_start.pack(side=tk.RIGHT, fill=tk.X, expand=True)
+
+        self.btn_qr = ttk.Button(self.frame_top, text="📱 QR Pair Device", command=self.show_qr)
+        self.btn_qr.pack(fill=tk.X, padx=15, pady=(0, 15))
         
-        self.btn_qr = ttk.Button(f_controls, text="📱 QR Pair", command=self.show_qr)
-        self.btn_qr.pack(side=tk.LEFT, padx=5)
+        # --- RIGHT COLUMN ---
+        self.frame_middle = ttk.LabelFrame(self.col_right, text="Controller Configuration")
+        self.frame_middle.pack(fill=tk.X, pady=(0, 15))
         
-        self.btn_calibrate = ttk.Button(f_controls, text="Calibrate Neutral", command=self.calibrate, state=tk.DISABLED)
-        self.btn_calibrate.pack(side=tk.LEFT, padx=5)
+        # Grid layout for config
+        self.frame_middle.columnconfigure(1, weight=1)
         
-        # Middle Frame: Profiles and Config
-        self.frame_middle = ttk.LabelFrame(self.root, text="Controller Configuration")
-        self.frame_middle.pack(fill=tk.X, padx=10, pady=5)
-        
-        ttk.Label(self.frame_middle, text="Emulation:").grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
+        ttk.Label(self.frame_middle, text="Emulation:").grid(row=0, column=0, padx=15, pady=(15, 5), sticky=tk.W)
         self.controller_type_var = tk.StringVar(value="PlayStation (DualShock 4 / PS5)")
-        self.controller_type_combo = ttk.Combobox(
-            self.frame_middle,
-            textvariable=self.controller_type_var,
-            values=["PlayStation (DualShock 4 / PS5)", "Xbox 360"],
-            state="readonly",
-            width=28
-        )
-        self.controller_type_combo.grid(row=0, column=1, padx=5, pady=5, sticky=tk.W)
+        self.controller_type_combo = ttk.Combobox(self.frame_middle, textvariable=self.controller_type_var, values=["PlayStation (DualShock 4 / PS5)", "Xbox 360"], state="readonly")
+        self.controller_type_combo.grid(row=0, column=1, padx=15, pady=(15, 5), sticky=tk.EW)
         
-        self.btn_test_gamepad = ttk.Button(self.frame_middle, text="Test / Wake Gamepad", command=self.test_wake_gamepad)
-        self.btn_test_gamepad.grid(row=0, column=2, padx=10, pady=5, sticky=tk.W)
-        
-        ttk.Label(self.frame_middle, text="Phone Orientation:").grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
+        ttk.Label(self.frame_middle, text="Orientation:").grid(row=1, column=0, padx=15, pady=5, sticky=tk.W)
         self.profile_var = tk.StringVar(value="landscape")
-        self.profile_combo = ttk.Combobox(self.frame_middle, textvariable=self.profile_var, values=["landscape", "portrait", "standard"], state="readonly", width=14)
-        self.profile_combo.grid(row=1, column=1, padx=5, pady=5, sticky=tk.W)
+        self.profile_combo = ttk.Combobox(self.frame_middle, textvariable=self.profile_var, values=["landscape", "portrait", "standard"], state="readonly")
+        self.profile_combo.grid(row=1, column=1, padx=15, pady=5, sticky=tk.EW)
         
-        self.btn_edit_map = ttk.Button(self.frame_middle, text="Edit Mapping", command=self.open_mapping_editor)
-        self.btn_edit_map.grid(row=1, column=2, padx=10, pady=5, sticky=tk.W)
-        
-        # New Game Profile UI
-        ttk.Label(self.frame_middle, text="Game Profile:").grid(row=2, column=0, padx=5, pady=5, sticky=tk.W)
-        
+        ttk.Label(self.frame_middle, text="Game Profile:").grid(row=2, column=0, padx=15, pady=5, sticky=tk.W)
         self.game_profile_var = tk.StringVar(value=self.profiles_data.get("active_profile", "Default"))
         profile_names = [p["name"] for p in self.profiles_data.get("profiles", [])]
-        self.game_profile_combo = ttk.Combobox(self.frame_middle, textvariable=self.game_profile_var, values=profile_names, state="readonly", width=28)
-        self.game_profile_combo.grid(row=2, column=1, padx=5, pady=5, sticky=tk.W)
+        self.game_profile_combo = ttk.Combobox(self.frame_middle, textvariable=self.game_profile_var, values=profile_names, state="readonly")
+        self.game_profile_combo.grid(row=2, column=1, padx=15, pady=5, sticky=tk.EW)
         self.game_profile_combo.bind("<<ComboboxSelected>>", self.on_game_profile_change)
         
-        f_profile_btns = ttk.Frame(self.frame_middle)
-        f_profile_btns.grid(row=2, column=2, padx=10, pady=5, sticky=tk.W)
-        self.btn_manage_profiles = ttk.Button(f_profile_btns, text="Manage Profiles", command=self.open_profile_manager)
-        self.btn_manage_profiles.pack(side=tk.LEFT, padx=(0, 5))
+        f_prof_actions = ttk.Frame(self.frame_middle)
+        f_prof_actions.grid(row=3, column=0, columnspan=2, padx=15, pady=5, sticky=tk.EW)
+        self.btn_edit_map = ttk.Button(f_prof_actions, text="Edit Mapping", command=self.open_mapping_editor)
+        self.btn_edit_map.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
+        self.btn_manage_profiles = ttk.Button(f_prof_actions, text="Manage Profiles", command=self.open_profile_manager)
+        self.btn_manage_profiles.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(5, 0))
         
+        f_extras = ttk.Frame(self.frame_middle)
+        f_extras.grid(row=4, column=0, columnspan=2, padx=15, pady=5, sticky=tk.EW)
         self.auto_switch_var = tk.BooleanVar(value=self.profiles_data.get("auto_switch", True))
-        self.chk_auto_switch = ttk.Checkbutton(f_profile_btns, text="Auto-Switch", variable=self.auto_switch_var, command=self.on_auto_switch_toggle)
+        self.chk_auto_switch = ttk.Checkbutton(f_extras, text="Auto-Switch Profile", variable=self.auto_switch_var, command=self.on_auto_switch_toggle)
         self.chk_auto_switch.pack(side=tk.LEFT)
+        self.btn_calibrate = ttk.Button(f_extras, text="Calibrate Neutral", command=self.calibrate, state=tk.DISABLED)
+        self.btn_calibrate.pack(side=tk.RIGHT)
         
-        # Vibration Filter
-        self.block_small_motor_var = tk.BooleanVar(value=True)
-        self.chk_block_small_motor = ttk.Checkbutton(
-            self.frame_middle, 
-            text="Block continuous engine/brake vibrations (Racing Games)", 
-            variable=self.block_small_motor_var
-        )
-        self.chk_block_small_motor.grid(row=3, column=0, columnspan=3, padx=5, pady=5, sticky=tk.W)
+        self.btn_test_gamepad = ttk.Button(self.frame_middle, text="Test / Wake Gamepad", command=self.test_wake_gamepad)
+        self.btn_test_gamepad.grid(row=5, column=0, columnspan=2, padx=15, pady=(5, 15), sticky=tk.EW)
+        
+        self.block_small_motor_var = tk.BooleanVar(value=False)
+        self.chk_block_small_motor = ttk.Checkbutton(self.col_left, text="Block continuous engine/brake vibrations (Racing)", variable=self.block_small_motor_var)
+        self.chk_block_small_motor.pack(fill=tk.X, pady=(5, 15))
 
-        # Bottom Frame: Live Data
-        self.frame_bottom = ttk.LabelFrame(self.root, text="Live Output")
-        self.frame_bottom.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        # Bottom Area: Live Console + Visual Telemetry Objects
+        self.frame_bottom = ttk.Frame(self.root)
+        self.frame_bottom.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 20))
         
-        self.txt_console = tk.Text(self.frame_bottom, state=tk.DISABLED, bg="black", fg="white", font=("Consolas", 10))
-        self.txt_console.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        # Left side: Hacker Console
+        self.frame_term = ttk.LabelFrame(self.frame_bottom, text="Live Output")
+        self.frame_term.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
         
+        self.txt_console = tk.Text(
+            self.frame_term, 
+            state=tk.DISABLED, 
+            bg="#121212", 
+            fg="#00FF00", 
+            font=("Consolas", 11),
+            relief="flat",
+            padx=15, 
+            pady=15,
+            selectbackground="#264F78",
+            height=8
+        )
+        self.txt_console.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
+        
+        # Right side: Visual Objects (Telemetry)
+        self.frame_objects = ttk.LabelFrame(self.frame_bottom, text="Live Telemetry")
+        self.frame_objects.pack(side=tk.RIGHT, fill=tk.BOTH, expand=False)
+        
+        self.canvas = tk.Canvas(self.frame_objects, width=220, height=150, bg="#1E1E1E", highlightthickness=0)
+        self.canvas.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Draw background objects on canvas
+        # 1. Steering / Gyro Box
+        self.canvas.create_rectangle(10, 20, 110, 120, outline="#333333", width=2)
+        self.canvas.create_line(60, 20, 60, 120, fill="#333333", dash=(2, 2))
+        self.canvas.create_line(10, 70, 110, 70, fill="#333333", dash=(2, 2))
+        self.canvas.create_text(60, 10, text="STEERING (G)", fill="#AAAAAA", font=("Segoe UI", 8, "bold"))
+        self.steer_dot = self.canvas.create_oval(55, 65, 65, 75, fill="#0078D4", outline="#00A2FF")
+        
+        # 2. Brake Bar (L2)
+        self.canvas.create_rectangle(130, 20, 150, 120, outline="#333333", width=2)
+        self.canvas.create_text(140, 10, text="BRK", fill="#FF4444", font=("Segoe UI", 8, "bold"))
+        self.brake_bar = self.canvas.create_rectangle(131, 119, 149, 119, fill="#FF4444", outline="")
+        
+        # 3. Throttle Bar (R2)
+        self.canvas.create_rectangle(170, 20, 190, 120, outline="#333333", width=2)
+        self.canvas.create_text(180, 10, text="ACC", fill="#00FF00", font=("Segoe UI", 8, "bold"))
+        self.accel_bar = self.canvas.create_rectangle(171, 119, 189, 119, fill="#00FF00", outline="")
         self.last_raw_accel = [0.0, 0.0, 0.0]
         self.last_raw_gyro = [0.0, 0.0, 0.0]
         self.mapper = InputMapper(mode="landscape")
@@ -630,6 +727,23 @@ class ControllerGUI:
                 
                 if reconnect_delay == 0:
                     self.log(f"Connecting to socket at {target_ip}:5050...")
+                elif not is_wifi:
+                    # Device might have reconnected with a new ADB state, re-detect first
+                    self.service.detect_devices()
+                    if self.service.current_devices:
+                        self.device = self.service.current_devices[0]
+                    else:
+                        s.close()
+                        reconnect_delay = 2
+                        continue
+                        
+                    try:
+                        self.service.transport.open_stream(self.device.serial, 5050, 5050)
+                    except Exception as e:
+                        s.close()
+                        reconnect_delay = 2
+                        continue
+
                 try:
                     s.connect((target_ip, 5050))
                     
