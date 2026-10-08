@@ -75,7 +75,7 @@ GyroPad uses raw 1:1 sensor data with zero deadzones. Because camera bumps and d
 Make the app look how you want! In the Android app, click the **Settings Gear**:
 * Change the **Controller Theme** to PS5 (Light), Xbox (Dark Green), or Switch (Neon).
 * Select **Custom Background** to pick an image from your phone's photo gallery to use as your UI background!
-* **Vibration Support:** The app now fully supports in-game haptic feedback (rumble) sent from the PC directly to your phone. Ensure vibration is enabled on your phone's system settings.
+* **Vibration Support & Improved Haptics:** The app now fully supports in-game haptic feedback (rumble) sent from the PC directly to your phone. Recent updates have significantly improved the perceptibility and strength of rumble pulses, guaranteeing short in-game vibrations are successfully felt on your device. Ensure vibration is enabled on your phone's system settings and the "Haptic Feedback" toggle is turned on in the app settings.
 
 ---
 

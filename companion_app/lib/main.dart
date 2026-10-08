@@ -502,7 +502,14 @@ class _SensorStreamPageState extends State<SensorStreamPage> {
                     if (durationMs == 0) {
                       Vibration.cancel();
                     } else if (_enableVibration) {
-                      Vibration.vibrate(duration: durationMs);
+                      int actualDuration = durationMs < 50 ? 50 : durationMs;
+                      Vibration.hasAmplitudeControl().then((hasAmp) {
+                        if (hasAmp == true) {
+                          Vibration.vibrate(duration: actualDuration, amplitude: 255);
+                        } else {
+                          Vibration.vibrate(duration: actualDuration);
+                        }
+                      });
                     }
                   }
                 });

@@ -766,7 +766,7 @@ class ControllerGUI:
                                 
                                 if intensity > 0:
                                     if current_time - getattr(self, 'last_rumble_time', 0) > 0.25:
-                                        duration = int((intensity / 255.0) * 300)
+                                        duration = int((intensity / 255.0) * 400)
                                         self.pending_vib_duration = duration
                                         self.last_rumble_time = current_time
                                         self.is_rumbling = True
